@@ -4,7 +4,14 @@ import LoginScreen from "./LoginScreen.jsx";
 import { Sidebar, TopBar, MODULE_TITLES } from "./Shell.jsx";
 import Dashboard from "./Dashboard.jsx";
 import Planning from "./Planning.jsx";
-import { LessonsList, CurriculumList, StrategiesList, ResourcesList, PDList, EvaluationList, SettingsView, ProfileView } from "./OtherModules.jsx";
+import { ProfileView } from "./OtherModules.jsx";
+import LessonsEditor from "./modules/LessonsEditor.jsx";
+import CurriculumEditor from "./modules/CurriculumEditor.jsx";
+import StrategiesEditor from "./modules/StrategiesEditor.jsx";
+import ResourcesEditor from "./modules/ResourcesEditor.jsx";
+import PDEditor from "./modules/PDEditor.jsx";
+import EvaluationEditor from "./modules/EvaluationEditor.jsx";
+import SettingsEditor from "./modules/SettingsEditor.jsx";
 import { T, Loading } from "./ui.jsx";
 
 export default function App() {
@@ -45,13 +52,13 @@ export default function App() {
           {module === "dashboard" && <Dashboard currentUser={currentUser} />}
           {module === "profile" && <ProfileView currentUser={currentUser} onUpdated={setCurrentUser} />}
           {module === "planning" && <Planning currentUser={currentUser} />}
-          {module === "lessons" && <LessonsList />}
-          {module === "curriculum" && <CurriculumList />}
-          {module === "strategies" && <StrategiesList />}
-          {module === "resources" && <ResourcesList />}
-          {module === "pd" && <PDList />}
-          {module === "evaluation" && <EvaluationList />}
-          {module === "settings" && <SettingsView />}
+          {module === "lessons" && <LessonsEditor currentUser={currentUser} />}
+          {module === "curriculum" && <CurriculumEditor currentUser={currentUser} />}
+          {module === "strategies" && <StrategiesEditor currentUser={currentUser} />}
+          {module === "resources" && <ResourcesEditor currentUser={currentUser} />}
+          {module === "pd" && <PDEditor currentUser={currentUser} />}
+          {module === "evaluation" && <EvaluationEditor currentUser={currentUser} />}
+          {module === "settings" && <SettingsEditor currentUser={currentUser} />}
         </div>
       </div>
     </div>

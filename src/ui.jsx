@@ -65,6 +65,36 @@ export function TextField({ value, onChange, placeholder, rows = 3, disabled }) 
   );
 }
 
+const inputBase = {
+  width: "100%", border: `1px solid ${T.line}`, borderRadius: 10,
+  padding: "10px 12px", fontSize: 14.5, color: T.ink900, fontFamily: "inherit",
+  background: "#fff", boxSizing: "border-box",
+};
+
+export function Input({ value, onChange, placeholder, type = "text", disabled }) {
+  const style = { ...inputBase, background: disabled ? T.cream100 : "#fff", opacity: disabled ? 0.7 : 1 };
+  const merged = type ? { ...style, type } : style;
+  return (
+    <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={merged} />
+  );
+}
+
+export function Select({ value, onChange, options = [], placeholder, disabled }) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      style={{ ...inputBase, background: disabled ? T.cream100 : "#fff", opacity: disabled ? 0.7 : 1 }}
+    >
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  );
+}
+
 export function Button({ children, onClick, variant = "primary", disabled, style }) {
   const base = {
     border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13.5,
