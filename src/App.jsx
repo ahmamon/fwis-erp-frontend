@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, getSignedInEmail, signOut } from "./api.js";
+import { api, isSignedIn, signOut } from "./api.js";
+import { isAzureEnabled, refreshMicrosoftToken, signOutOfMicrosoft } from "./auth.js";
 import LoginScreen from "./LoginScreen.jsx";
 import { Sidebar, TopBar, MODULE_TITLES } from "./Shell.jsx";
 import Dashboard from "./Dashboard.jsx";
@@ -20,11 +21,16 @@ export default function App() {
   const [module, setModule] = useState("dashboard");
 
   useEffect(() => {
-    if (!getSignedInEmail()) { setCheckedSession(true); return; }
-    api.get("/api/users/me")
-      .then(setCurrentUser)
-      .catch(() => signOut())
-      .finally(() => setCheckedSession(true));
+    (async () => {
+      if (!isSignedIn()) { setCheckedSession(true); return; }
+      // Renew the Azure access token silently if a cached session exists, so a
+      // returning visitor isn't forced through another sign-in popup.
+      if (isAzureEnabled()) await refreshMicrosoftToken();
+      api.get("/api/users/me")
+        .then(setCurrentUser)
+        .catch(() => signOut())
+        .finally(() => setCheckedSession(true));
+    })();
   }, []);
 
   if (!checkedSession) return <Loading label="Checking session..." />;
@@ -37,7 +43,8 @@ export default function App() {
     );
   }
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    await signOutOfMicrosoft();
     signOut();
     setCurrentUser(null);
     setModule("dashboard");

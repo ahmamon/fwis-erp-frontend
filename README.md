@@ -5,8 +5,9 @@ at `academic.alsafwafuture.com`, not fake local data.
 
 ## What works right now
 
-- **Sign in** — a real account picker fetched from your live database
-  (dev-mode stand-in for real Outlook login, same pattern as the backend).
+- **Sign in** — Microsoft 365 (Azure AD) sign-in when configured, with the
+  dev-mode account picker as an automatic fallback until then (see
+  "Microsoft 365 sign-in" below).
 - **Dashboard** — computed live from real weekly plans.
 - **Weekly Planning** — the complete real workflow: create, edit, submit,
   approve, return with comment — every action calls the real API and is
@@ -14,8 +15,10 @@ at `academic.alsafwafuture.com`, not fake local data.
 - **My Profile** — edit your phone/bio, saved for real.
 - **Lesson Preparation, Curriculum Mapping, Teaching Strategies,
   Resources, Professional Development, Teacher Evaluation, Settings** —
-  show real live data from your database as read-only lists for now.
-  Full editing for each of these is the next round of work.
+  fully editable. Every action is saved against the live database, and the
+  backend is hardened against crashes (each mutation is guarded, Prisma
+  errors return proper 404/409 responses) so no editor can take the
+  instance down.
 
 ## Local setup
 
@@ -25,10 +28,41 @@ at `academic.alsafwafuture.com`, not fake local data.
 3. `npm run dev`
 4. Open the URL it prints (usually `http://localhost:5173`).
 
+## Microsoft 365 sign-in (Azure AD)
+
+The app signs in with real Microsoft 365 accounts through MSAL. It only
+activates when the frontend environment has the Azure AD app-registration
+IDs set (and the backend has its own matching `AZURE_*` envs).
+
+Frontend environment variables (Vercel):
+
+| Variable | Purpose |
+|---|---|
+| `VITE_AZURE_CLIENT_ID` | Application (client) ID of your Azure AD app registration |
+| `VITE_AZURE_TENANT_ID` | Directory (tenant) ID of your Microsoft 365 tenant |
+| `VITE_AZURE_SCOPE` | Scope requested (defaults to `api://<client-id>`, matching what the backend verifies) |
+| `VITE_AZURE_REDIRECT_URI` | Optional; defaults to `window.location.origin` |
+
+While these are blank, the login screen falls back to the dev-mode account
+picker so the app remains fully testable. Unsetting the vars (or leaving
+them blank) is the switch that keeps dev mode on.
+
+Azure-side steps to flip it live:
+
+1. Create a **Single-page application** app registration in Entra, set the
+   redirect URI to your frontend's origin (e.g. `https://app.alsafwafuture.com`),
+   and expose an API scope (`api://<client-id>` by default) that grants
+   `access_as_user` — or set `VITE_AZURE_SCOPE` to the scope you create.
+2. Grant the app `User.Read` so MSAL can return the account email.
+3. Add the frontend vars above to Vercel; add `AZURE_CLIENT_ID`,
+   `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SCOPE` to the backend;
+   deploy both.
+4. The backend (`src/middleware/auth.js`) verifies each bearer token's
+   audience and issuer, reads the user's email from `preferred_username`,
+   and maps it to their saved role — so accounts must exist in the User
+   table before they can sign in.
+
 ## Deploying this for real
 
-Once you're happy with it locally, this can be deployed the same way the
-backend was — pushed to GitHub and connected to a static hosting platform
-(Vercel and Netlify are the simplest for a Vite app like this one), then
-pointed at another subdomain of your real domain, e.g.
-`app.alsafwafuture.com`.
+This repo deploys on Vercel from `main` (auto-deploy on push). Point it at
+a subdomain of your real domain, e.g. `app.alsafwafuture.com`.

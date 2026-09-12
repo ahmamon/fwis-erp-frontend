@@ -1,11 +1,19 @@
+import { isAzureEnabled, getAuthToken, clearAuthToken, hasAzureSession } from "./auth.js";
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
-// DEV-MODE AUTH: sends the signed-in account's email on every request.
-// The backend uses this to look up who's asking (see fwis-backend's
-// src/middleware/auth.js). Once real Azure AD sign-in is wired up, this
-// header goes away and a real bearer token takes its place instead —
-// nothing else about how this file is used needs to change.
+// AUTH: once Azure AD is configured (VITE_AZURE_CLIENT_ID + TENANT_SET and the
+// server has its own AZURE_* envs), every request carries
+//   Authorization: Bearer <access token>
+// and the backend (src/middleware/auth.js) verifies it and looks the user up by
+// email. Until then — or while the server still runs without Azure envs — the
+// app sends the dev-mode `x-dev-email` header so the rest of the app can keep
+// being tested against the live database.
 function authHeaders() {
+  if (isAzureEnabled()) {
+    const token = getAuthToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
   const email = localStorage.getItem("fwis_dev_email");
   return email ? { "x-dev-email": email } : {};
 }
@@ -64,6 +72,14 @@ export function getSignedInEmail() {
   return localStorage.getItem("fwis_dev_email");
 }
 
+// Unified "is someone signed in" check used by App.jsx — true for either a
+// dev-mode email or a live Azure AD session.
+export function isSignedIn() {
+  if (isAzureEnabled()) return hasAzureSession();
+  return Boolean(getSignedInEmail());
+}
+
 export function signOut() {
   localStorage.removeItem("fwis_dev_email");
+  clearAuthToken();
 }
