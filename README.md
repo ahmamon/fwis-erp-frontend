@@ -30,9 +30,11 @@ at `academic.alsafwafuture.com`, not fake local data.
 
 ## Microsoft 365 sign-in (Azure AD)
 
-The app signs in with real Microsoft 365 accounts through MSAL. It only
-activates when the frontend environment has the Azure AD app-registration
-IDs set (and the backend has its own matching `AZURE_*` envs).
+The app signs in with real Microsoft 365 accounts through MSAL. Sign-in uses
+the **redirect flow** — the tab navigates to Microsoft and bounces back with the
+token — which is more reliable than popup windows. It only activates when the
+frontend environment has the Azure AD app-registration IDs set (and the backend
+has its own matching `AZURE_*` envs).
 
 Frontend environment variables (Vercel):
 
@@ -40,7 +42,7 @@ Frontend environment variables (Vercel):
 |---|---|
 | `VITE_AZURE_CLIENT_ID` | Application (client) ID of your Azure AD app registration |
 | `VITE_AZURE_TENANT_ID` | Directory (tenant) ID of your Microsoft 365 tenant |
-| `VITE_AZURE_SCOPE` | Scope requested (defaults to `api://<client-id>`, matching what the backend verifies) |
+| `VITE_AZURE_SCOPE` | API scope requested (defaults to `api://<client-id>/access_as_user`); its resource is what the token's `aud` claim then carries |
 | `VITE_AZURE_REDIRECT_URI` | Optional; defaults to `window.location.origin` |
 
 While these are blank, the login screen falls back to the dev-mode account
@@ -51,11 +53,11 @@ Azure-side steps to flip it live:
 
 1. Create a **Single-page application** app registration in Entra, set the
    redirect URI to your frontend's origin (e.g. `https://app.alsafwafuture.com`),
-   and expose an API scope (`api://<client-id>` by default) that grants
-   `access_as_user` — or set `VITE_AZURE_SCOPE` to the scope you create.
+   and expose an API scope under `api://<client-id>` named `access_as_user`
+   (or set `VITE_AZURE_SCOPE` to the scope you create).
 2. Grant the app `User.Read` so MSAL can return the account email.
 3. Add the frontend vars above to Vercel; add `AZURE_CLIENT_ID`,
-   `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SCOPE` to the backend;
+   `AZURE_TENANT_ID`, and `AZURE_AUDIENCE=api://<client-id>` to the backend;
    deploy both.
 4. The backend (`src/middleware/auth.js`) verifies each bearer token's
    audience and issuer, reads the user's email from `preferred_username`,

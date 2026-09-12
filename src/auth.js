@@ -16,10 +16,12 @@ import { PublicClientApplication } from "@azure/msal-browser";
 
 const CLIENT_ID = import.meta.env.VITE_AZURE_CLIENT_ID || "";
 const TENANT_ID = import.meta.env.VITE_AZURE_TENANT_ID || "";
-// Default scope asks for a token whose audience is this app itself — the same
-// audience the backend verifies (api://<client-id>). If you've exposed a named
-// scope on the app registration, point VITE_AZURE_SCOPE at it instead.
-const SCOPE = import.meta.env.VITE_AZURE_SCOPE || (CLIENT_ID ? `api://${CLIENT_ID}` : "");
+// Default scope asks for this app's own exposed API permission, which the portal
+// pre-fills with the name `access_as_user` under "Expose an API". Requesting the
+// bare api://<client-id> without a scope path returns AADSTS500011 ("resource
+// principal not found"), so always include the scope path. If your scope is named
+// differently, override it with VITE_AZURE_SCOPE.
+const SCOPE = import.meta.env.VITE_AZURE_SCOPE || (CLIENT_ID ? `api://${CLIENT_ID}/access_as_user` : "");
 
 export const isAzureEnabled = () => Boolean(CLIENT_ID && TENANT_ID);
 
@@ -86,26 +88,21 @@ function accountEmail(account) {
   return account?.username || account?.idTokenClaims?.preferred_username || account?.idTokenClaims?.email || "";
 }
 
-// Popup prompt for Microsoft 365 sign-in, then stores the access token.
-// Resolves with the account email so the caller can finish the login flow.
+// Redirect flow for Microsoft 365 sign-in. The whole tab navigates to Microsoft
+// and bounces back with the token in the URL hash; the next page load picks it
+// up via handleRedirectResult() in App.jsx. Redirect (rather than popup) avoids
+// popup blockers and the block_nested_popups failures popup login hits when a
+// token request fails. This only returns after navigation is underway.
 export async function signInWithMicrosoft() {
   const inst = getMsalInstance();
   if (!inst) throw new Error("Azure AD is not configured (VITE_AZURE_CLIENT_ID / VITE_AZURE_TENANT_ID).");
   await whenInitialized();
 
-  const request = { scopes: SCOPE ? [SCOPE] : [] };
-  const result = await inst.loginPopup(request);
-  inst.setActiveAccount(result.account);
-
-  const email = accountEmail(result.account);
-  if (!email) throw new Error("Microsoft did not return an email for this account.");
-
-  setAuthToken(result.accessToken || "");
-  return { email };
+  await inst.loginRedirect({ scopes: SCOPE ? [SCOPE] : [] });
 }
 
 // Refresh the stored token using the cached MSAL session (used by App.jsx on
-// startup so an open tab can renew rather than force another sign-in popup).
+// startup so an open tab can renew rather than force another sign-in redirect).
 export async function refreshMicrosoftToken() {
   try {
     const inst = getMsalInstance();
@@ -126,20 +123,43 @@ export async function refreshMicrosoftToken() {
   }
 }
 
-// Sign the user out of this app (optionally popping the Microsoft session too).
+// On-page-load entry point for the redirect flow. MSAL requires
+// handleRedirectPromise() to run before any other MSAL call on a page load that
+// might be returning from a sign-in redirect. Resolves with the account email if
+// the previous redirect completed a login (App.jsx then loads the user), or null
+// if there's nothing pending.
+export async function handleRedirectResult() {
+  try {
+    const inst = getMsalInstance();
+    if (!inst) return null;
+    await whenInitialized();
+    const response = await inst.handleRedirectPromise();
+    if (response?.account) {
+      inst.setActiveAccount(response.account);
+      setAuthToken(response.accessToken || "");
+      return accountEmail(response.account);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Sign the user out: clear local state first, then bounce through Microsoft's
+// logout (redirect flow, matching how sign-in works).
 export async function signOutOfMicrosoft() {
   if (isAzureEnabled()) {
+    clearAuthToken();
     try {
       const inst = getMsalInstance();
       if (inst) {
         await whenInitialized();
         const account = inst.getActiveAccount();
         inst.setActiveAccount(null);
-        if (account) await inst.logoutPopup({ postLogoutRedirectUri: window.location.origin });
+        if (account) await inst.logoutRedirect({ postLogoutRedirectUri: window.location.origin, account });
       }
     } catch {
-      // Popup may be blocked; clearing local state below still logs the
-      // user out of the app.
+      // Local state is already cleared above, so the user is signed out either way.
     }
   }
   clearAuthToken();

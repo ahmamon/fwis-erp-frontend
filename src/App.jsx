@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, isSignedIn, signOut } from "./api.js";
-import { isAzureEnabled, refreshMicrosoftToken, signOutOfMicrosoft } from "./auth.js";
+import { isAzureEnabled, refreshMicrosoftToken, signOutOfMicrosoft, handleRedirectResult } from "./auth.js";
 import LoginScreen from "./LoginScreen.jsx";
 import { Sidebar, TopBar, MODULE_TITLES } from "./Shell.jsx";
 import Dashboard from "./Dashboard.jsx";
@@ -22,10 +22,18 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      if (!isSignedIn()) { setCheckedSession(true); return; }
-      // Renew the Azure access token silently if a cached session exists, so a
-      // returning visitor isn't forced through another sign-in popup.
-      if (isAzureEnabled()) await refreshMicrosoftToken();
+      // 1) If this page load is the bounce-back from a Microsoft sign-in
+      //    redirect, the token sits in the URL hash — MSAL requires
+      //    handleRedirectPromise() to consume it before any other MSAL call.
+      const redirectEmail = isAzureEnabled() ? await handleRedirectResult() : null;
+
+      // 2) No session yet → login screen (its button redirects to Microsoft).
+      if (!redirectEmail && !isSignedIn()) { setCheckedSession(true); return; }
+
+      // 3) Cached session → renew silently so a returning visitor isn't sent
+      //    through another redirect (skipped right after a fresh redirect sign-in).
+      if (isAzureEnabled() && !redirectEmail) await refreshMicrosoftToken();
+
       api.get("/api/users/me")
         .then(setCurrentUser)
         .catch(() => signOut())

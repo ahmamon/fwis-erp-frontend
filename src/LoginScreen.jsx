@@ -15,7 +15,10 @@ export default function LoginScreen({ onSignedIn }) {
     setError("");
     try {
       await signInWithMicrosoft();
-      onSignedIn();
+      // Redirect flow: signInWithMicrosoft() navigates the tab to Microsoft and
+      // resolves as navigation starts. There's no session yet, so don't call
+      // onSignedIn() — the bounce-back reload reports the user via App.jsx's
+      // handleRedirectResult() + /api/users/me.
     } catch (e) {
       setError(e.message || "Microsoft sign-in did not complete. Check the Azure AD app registration.");
     } finally {
