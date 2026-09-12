@@ -3,16 +3,21 @@ import { api, setSignedInEmail } from "./api.js";
 import { isAzureEnabled, signInWithMicrosoft } from "./auth.js";
 import { T, ROLE_LABELS, Loading, ErrorBanner } from "./ui.jsx";
 
-export default function LoginScreen({ onSignedIn }) {
+export default function LoginScreen({ onSignedIn, externalError = "", onClearExternalError }) {
   const [showPicker, setShowPicker] = useState(false);
   const [azureBusy, setAzureBusy] = useState(false);
   const [users, setUsers] = useState(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
+  // `error` is set locally (dev picker / MSAL) and `externalError` is passed
+  // down from App.jsx when the backend rejected the sign-in — show whichever.
+  const shownError = error || externalError || "";
+
   async function signInMicrosoft() {
     setAzureBusy(true);
     setError("");
+    onClearExternalError?.();
     try {
       await signInWithMicrosoft();
       // Redirect flow: signInWithMicrosoft() navigates the tab to Microsoft and
@@ -38,6 +43,8 @@ export default function LoginScreen({ onSignedIn }) {
   );
 
   function choose(email) {
+    setError("");
+    onClearExternalError?.();
     setSignedInEmail(email);
     onSignedIn();
   }
@@ -57,7 +64,7 @@ export default function LoginScreen({ onSignedIn }) {
           <div style={{ fontSize: 14, color: "rgba(250,248,243,0.75)", marginBottom: 40 }}>
             Academic Planning &amp; Performance System
           </div>
-          {error && <div style={{ maxWidth: 380, margin: "0 auto 18px", textAlign: "left" }}><ErrorBanner message={error} /></div>}
+          {shownError && <div style={{ maxWidth: 380, margin: "0 auto 18px", textAlign: "left" }}><ErrorBanner message={shownError} /></div>}
           {isAzureEnabled() ? (
             <button onClick={signInMicrosoft} disabled={azureBusy} style={{
               width: "100%", maxWidth: 340, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
@@ -99,7 +106,7 @@ export default function LoginScreen({ onSignedIn }) {
             />
           </div>
           <div style={{ overflowY: "auto", flex: 1 }}>
-            {error && <div style={{ padding: 16 }}><ErrorBanner message={error} /></div>}
+            {shownError && <div style={{ padding: 16 }}><ErrorBanner message={shownError} /></div>}
             {!users && !error && <Loading label="Loading accounts..." />}
             {visible.map((u) => (
               <button key={u.id} onClick={() => choose(u.email)} style={{

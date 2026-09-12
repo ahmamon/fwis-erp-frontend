@@ -19,6 +19,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [checkedSession, setCheckedSession] = useState(false);
   const [module, setModule] = useState("dashboard");
+  // Set when the session check fails with a backend message (e.g. a rejected
+  // login with a non-school-domain Microsoft account) so LoginScreen can show it.
+  const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -36,7 +39,7 @@ export default function App() {
 
       api.get("/api/users/me")
         .then(setCurrentUser)
-        .catch(() => signOut())
+        .catch((e) => { setLoginError(e.message || ""); signOut(); })
         .finally(() => setCheckedSession(true));
     })();
   }, []);
@@ -45,9 +48,15 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <LoginScreen onSignedIn={() => {
-        api.get("/api/users/me").then(setCurrentUser);
-      }} />
+      <LoginScreen
+        externalError={loginError}
+        onClearExternalError={() => setLoginError("")}
+        onSignedIn={() => {
+          api.get("/api/users/me")
+            .then(setCurrentUser)
+            .catch((e) => { setLoginError(e.message || ""); signOut(); });
+        }}
+      />
     );
   }
 
