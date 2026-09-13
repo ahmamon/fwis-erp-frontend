@@ -4,6 +4,10 @@ import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, In
 
 const canManage = (user) => user && (user.role === "admin" || user.role === "supervisor");
 
+// Server enforces the same cap (multer limit); this just avoids uploading a
+// file that would be rejected.
+const MAX_FILE_BYTES = 8 * 1024 * 1024;
+
 const KIND_OPTIONS = [
   { value: "link", label: "Link" },
   { value: "file", label: "File" },
@@ -34,7 +38,7 @@ export default function ResourcesEditor({ currentUser }) {
       >
         <ErrorBanner message={error} />
         <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 14 }}>
-          Uploaded files are stored securely in the school's file storage and streamed back when opened.
+          Files are stored securely in the school's database (max 8 MB each) and streamed back when opened.
         </div>
         {showNew && <ResourceForm onDone={async () => { setShowNew(false); await load(); }} onCancel={() => setShowNew(false)} />}
         {items.length === 0 ? (
@@ -90,6 +94,10 @@ function ResourceForm({ initial, onDone, onCancel }) {
         const file = (initial && !fileRef.current?.files?.length) ? null : fileRef.current?.files?.[0];
         if (!initial && !file) {
           setError("Choose a file to upload.");
+          return;
+        }
+        if (file && file.size > MAX_FILE_BYTES) {
+          setError("File exceeds the 8 MB limit. Choose a smaller file.");
           return;
         }
         if (file) {
@@ -181,6 +189,10 @@ function ResourceRow({ resource, canManage, onChanged }) {
     const file = fileRef.current?.files?.[0];
     if (!file) {
       setError("Choose a file first.");
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setError("File exceeds the 8 MB limit. Choose a smaller file.");
       return;
     }
     setUploading(true);
