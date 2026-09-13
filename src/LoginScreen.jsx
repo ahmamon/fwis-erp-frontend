@@ -3,6 +3,20 @@ import { api, setSignedInEmail } from "./api.js";
 import { isAzureEnabled, signInWithMicrosoft } from "./auth.js";
 import { T, ROLE_LABELS, Loading, ErrorBanner } from "./ui.jsx";
 
+/* ---------- logo-ring keyframes (once per page load) ---------- */
+const RING_KEYFRAMES_ID = "__fwis-logo-ring";
+if (typeof document !== "undefined" && !document.getElementById(RING_KEYFRAMES_ID)) {
+  const style = document.createElement("style");
+  style.id = RING_KEYFRAMES_ID;
+  style.textContent = `
+    @keyframes fwis-ring-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export default function LoginScreen({ onSignedIn, externalError = "", onClearExternalError }) {
   const [showPicker, setShowPicker] = useState(false);
   const [azureBusy, setAzureBusy] = useState(false);
@@ -64,6 +78,32 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
           <div style={{ fontSize: 14, color: "rgba(250,248,243,0.75)", marginBottom: 40 }}>
             Academic Planning &amp; Performance System
           </div>
+
+          {/* School logo, ringed by a slowly rotating gold halo */}
+          <div style={{ position: "relative", width: 168, height: 168, margin: "0 auto 30px" }}>
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute", inset: -14,
+                borderRadius: "50%",
+                background: `conic-gradient(${T.gold500} 0deg, rgba(198,161,91,0.12) 30deg 200deg, rgba(198,161,91,0.55) 290deg, ${T.gold500} 360deg)`,
+                WebkitMask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px))",
+                mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px))",
+                animation: "fwis-ring-spin 24s linear infinite",
+              }}
+            />
+            <img
+              src="/fwis-logo.jpg"
+              alt="Future Window International School logo"
+              style={{
+                width: "100%", height: "100%",
+                borderRadius: "50%",
+                objectFit: "cover", display: "block",
+                boxShadow: "0 6px 24px rgba(0,0,0,0.4)",
+              }}
+            />
+          </div>
+
           {shownError && <div style={{ maxWidth: 380, margin: "0 auto 18px", textAlign: "left" }}><ErrorBanner message={shownError} /></div>}
           {isAzureEnabled() ? (
             <button onClick={signInMicrosoft} disabled={azureBusy} style={{
