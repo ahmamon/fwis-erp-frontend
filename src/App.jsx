@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, isSignedIn, signOut } from "./api.js";
 import { isAzureEnabled, refreshMicrosoftToken, signOutOfMicrosoft, handleRedirectResult } from "./auth.js";
 import LoginScreen from "./LoginScreen.jsx";
-import { Sidebar, TopBar, MODULE_TITLES } from "./Shell.jsx";
+import { Sidebar, TopBar, MODULE_TITLES, useSidebarPreferences } from "./Shell.jsx";
 import Dashboard from "./Dashboard.jsx";
 import Planning from "./Planning.jsx";
 import { ProfileView } from "./OtherModules.jsx";
@@ -22,6 +22,9 @@ export default function App() {
   // Set when the session check fails with a backend message (e.g. a rejected
   // login with a non-school-domain Microsoft account) so LoginScreen can show it.
   const [loginError, setLoginError] = useState("");
+
+  // Sidebar collapsed/width preferences — persisted per browser via localStorage.
+  const sidebar = useSidebarPreferences();
 
   useEffect(() => {
     (async () => {
@@ -69,9 +72,9 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100%", background: T.cream50, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", overflow: "hidden" }}>
-      <Sidebar active={module} onNavigate={setModule} />
+      <Sidebar active={module} onNavigate={setModule} collapsed={sidebar.collapsed} width={sidebar.width} onResize={sidebar.resize} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <TopBar currentUser={currentUser} onSignOut={handleSignOut} title={MODULE_TITLES[module]} />
+        <TopBar currentUser={currentUser} onSignOut={handleSignOut} title={MODULE_TITLES[module]} onToggleSidebar={sidebar.toggleCollapsed} />
         <div style={{ flex: 1, overflowY: "auto" }}>
           {module === "dashboard" && <Dashboard currentUser={currentUser} />}
           {module === "profile" && <ProfileView currentUser={currentUser} onUpdated={setCurrentUser} />}
