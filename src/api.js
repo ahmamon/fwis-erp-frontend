@@ -49,6 +49,24 @@ export const api = {
   patch: (path, body) => request(path, { method: "PATCH", body: JSON.stringify(body || {}) }),
   del: (path) => request(path, { method: "DELETE" }),
 
+  // Fetch a file with the auth header and return it as a Blob (used by the
+  // resources "Open" button — the storage container is private, so downloads
+  // go through the authenticated /file route).
+  download: async (path) => {
+    const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() });
+    if (!res.ok) {
+      let message = `Request failed (${res.status})`;
+      try {
+        const body = await res.json();
+        if (body.error) message = body.error;
+      } catch {
+        // response wasn't JSON — keep the generic message
+      }
+      throw new Error(message);
+    }
+    return res.blob();
+  },
+
   // File uploads use multipart/form-data, not JSON
   postForm: async (path, formData) => {
     const res = await fetch(`${BASE_URL}${path}`, {

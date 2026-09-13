@@ -34,7 +34,7 @@ export default function ResourcesEditor({ currentUser }) {
       >
         <ErrorBanner message={error} />
         <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 14 }}>
-          File uploads are stored on the server's local disk for now (Azure Blob storage is a later step).
+          Uploaded files are stored securely in the school's file storage and streamed back when opened.
         </div>
         {showNew && <ResourceForm onDone={async () => { setShowNew(false); await load(); }} onCancel={() => setShowNew(false)} />}
         {items.length === 0 ? (
@@ -197,6 +197,16 @@ function ResourceRow({ resource, canManage, onChanged }) {
     }
   }
 
+  async function openVersion(v) {
+    setError("");
+    try {
+      const blob = await api.download(`/api/resources/${resource.id}/versions/${v.id}/file`);
+      window.open(URL.createObjectURL(blob), "_blank");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (editing) {
     return <ResourceForm initial={resource} onDone={async () => { setEditing(false); await onChanged(); }} onCancel={() => setEditing(false)} />;
   }
@@ -227,8 +237,20 @@ function ResourceRow({ resource, canManage, onChanged }) {
         )}
       </div>
       {resource.versions && resource.versions.length > 0 && (
-        <div style={{ marginTop: 10, fontSize: 12.5, color: T.ink600 }}>
-          {resource.versions.length} version{resource.versions.length > 1 ? "s" : ""} uploaded
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 6 }}>
+            {resource.versions.length} version{resource.versions.length > 1 ? "s" : ""} uploaded
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {resource.versions.filter((v) => v.fileName).map((v) => (
+              <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: T.ink900 }}>
+                <span style={{ fontWeight: 600, color: T.ink500, width: 26, flexShrink: 0 }}>v{v.version}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.fileName}</span>
+                {v.fileSize && <span style={{ color: T.ink600, flexShrink: 0 }}>{v.fileSize}</span>}
+                <Button onClick={() => openVersion(v)} variant="outline" style={{ padding: "3px 10px", fontSize: 12, marginLeft: "auto", flexShrink: 0 }}>Open</Button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {canManage && (
