@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, StatusBadge, Input, Select } from "../ui";
+import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, StatusBadge, Input, Select, hasRole } from "../ui";
 
 const CONTENT_FIELDS = [
   ["readingSelection", "Reading selection"],
@@ -75,7 +75,7 @@ export default function LessonsEditor({ currentUser }) {
     <div>
       <SectionCard
         title={title}
-        right={currentUser && currentUser.role === "teacher" && (
+        right={currentUser && hasRole(currentUser, "teacher") && (
           <Button onClick={createDraft} disabled={creating}>{creating ? "Creating..." : "New draft"}</Button>
         )}
       >
@@ -130,7 +130,7 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
   }, [id]);
 
   if (!lesson) return <Loading />;
-  const isOwner = currentUser && (currentUser.role !== "teacher" || lesson.teacherId === currentUser.id);
+  const isOwner = currentUser && (!hasRole(currentUser, "teacher") || lesson.teacherId === currentUser.id);
 
   async function save() {
     setSaving(true);

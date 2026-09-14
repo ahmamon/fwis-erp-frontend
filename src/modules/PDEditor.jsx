@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input } from "../ui";
+import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, hasRole } from "../ui";
 
-const canViewAll = (user) => user && (user.role === "hod" || user.role === "supervisor" || user.role === "admin");
+const canViewAll = (user) => user && (hasRole(user, "hod") || hasRole(user, "supervisor") || hasRole(user, "admin"));
 
 export default function PDEditor({ currentUser }) {
   const [data, setData] = useState(null);

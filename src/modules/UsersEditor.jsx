@@ -1,13 +1,39 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { T, ROLE_LABELS, FieldLabel, Input, Select, TextField, Button, ErrorBanner, Loading, SectionCard } from "../ui";
+import { T, ROLE_OPTIONS, roleLabel, FieldLabel, Input, Select, TextField, Button, ErrorBanner, Loading, SectionCard } from "../ui";
 
-const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }));
-
-// An empty role select by definition belongs to the roster, so add/staff form
-// never lets a user have no role.
-function RoleSelect({ value, onChange, disabled }) {
-  return <Select value={value} onChange={onChange} options={ROLE_OPTIONS} disabled={disabled} />;
+// Multi-role editor: toggle chips over every role, always keeping ≥1 selected
+// so no account is ever left without a role. Saves via PATCH /api/users/:id/roles
+// (the backend validates the list and guards against removing your own admin).
+function RolesPicker({ label = "Roles", value = [], onChange, disabled }) {
+  const isOn = (r) => value.includes(r);
+  const toggle = (r) => {
+    if (isOn(r) && value.length === 1) return; // keep at least one role
+    onChange(isOn(r) ? value.filter((v) => v !== r) : [...value, r]);
+  };
+  return (
+    <div>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {ROLE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            disabled={disabled}
+            onClick={() => toggle(opt.value)}
+            style={{
+              border: isOn(opt.value) ? `1px solid ${T.gold600}` : `1px solid ${T.line}`,
+              background: isOn(opt.value) ? "rgba(198,161,91,0.18)" : "#fff",
+              color: T.ink900, borderRadius: 999, padding: "5px 12px", fontSize: 12.5,
+              fontWeight: 600, cursor: disabled ? "default" : "pointer",
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function ChipSelector({ label, options, value = [], onChange, disabled }) {
@@ -62,7 +88,7 @@ export default function UsersEditor({ currentUser }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [addForm, setAddForm] = useState({ name: "", email: "", role: "teacher", department: "", branchId: "" });
+  const [addForm, setAddForm] = useState({ name: "", email: "", roles: ["teacher"], department: "", branchId: "" });
   const setAdd = (k) => (v) => setAddForm((f) => ({ ...f, [k]: v }));
 
   const [editId, setEditId] = useState(null);
@@ -101,12 +127,12 @@ export default function UsersEditor({ currentUser }) {
 
   const addUser = () => run(async () => {
     await api.post("/api/users", addForm);
-    setAddForm({ name: "", email: "", role: "teacher", department: "", branchId: "" });
+    setAddForm({ name: "", email: "", roles: ["teacher"], department: "", branchId: "" });
     await load();
   });
 
-  const changeRole = (u) => (role) => run(async () => {
-    await api.patch(`/api/users/${u.id}/role`, { role });
+  const changeRoles = (u) => (r) => run(async () => {
+    await api.patch(`/api/users/${u.id}/roles`, { roles: r });
     await load();
   });
 
@@ -158,9 +184,8 @@ export default function UsersEditor({ currentUser }) {
               <FieldLabel required>Email</FieldLabel>
               <Input value={addForm.email} onChange={setAdd("email")} />
             </div>
-            <div style={{ flex: "1 1 150px" }}>
-              <FieldLabel>Role</FieldLabel>
-              <RoleSelect value={addForm.role} onChange={setAdd("role")} />
+            <div style={{ flex: "1 1 200px" }}>
+              <RolesPicker value={addForm.roles} onChange={setAdd("roles")} />
             </div>
             <div style={{ flex: "1 1 160px" }}>
               <FieldLabel>Department</FieldLabel>
@@ -231,7 +256,7 @@ export default function UsersEditor({ currentUser }) {
                         </div>
                         <div style={{ fontSize: 12.5, color: T.ink600 }}>{u.email}</div>
                         <div style={{ fontSize: 12, color: T.ink600 }}>
-                          {ROLE_LABELS[u.role] || u.role}
+                          {roleLabel(u)}
                           {u.department ? ` · ${u.department}` : ""}
                           {u.branch?.name ? ` · ${u.branch.name}` : ""}
                           {(u.assignedGrades?.length ? ` · grades: ${u.assignedGrades.join(", ")}` : "")}
@@ -239,8 +264,8 @@ export default function UsersEditor({ currentUser }) {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-                        <div style={{ width: 160 }}>
-                          <RoleSelect value={u.role} onChange={changeRole(u)} />
+                        <div style={{ width: 200 }}>
+                          <RolesPicker value={u.roles || (u.role ? [u.role] : [])} onChange={changeRoles(u)} label={null} />
                         </div>
                         {!isSelf && (
                           <Button onClick={() => toggleActive(u)} variant="outline" style={{ padding: "6px 12px", whiteSpace: "nowrap" }} disabled={busy}>

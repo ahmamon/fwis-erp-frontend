@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, setSignedInEmail } from "./api.js";
 import { isAzureEnabled, signInWithMicrosoft } from "./auth.js";
-import { T, ROLE_LABELS, Loading, ErrorBanner } from "./ui.jsx";
+import { T, roleLabel, Loading, ErrorBanner } from "./ui.jsx";
 
 /* ---------- logo-ring keyframes (once per page load) ---------- */
 const RING_KEYFRAMES_ID = "__fwis-logo-ring";
@@ -164,7 +164,7 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
                   <div style={{ fontSize: 12, color: T.ink600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>
                 </div>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: T.navy700, background: T.cream100, borderRadius: 999, padding: "3px 8px" }}>
-                  {ROLE_LABELS[u.role]}
+                  {roleLabel(u)}
                 </span>
               </button>
             ))}

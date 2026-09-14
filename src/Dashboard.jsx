@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
-import { T, StatusBadge, Loading, ErrorBanner, SectionCard } from "./ui.jsx";
+import { T, Loading, ErrorBanner, SectionCard } from "./ui.jsx";
 
 function StatCard({ label, value, sublabel }) {
   return (
@@ -12,71 +12,116 @@ function StatCard({ label, value, sublabel }) {
   );
 }
 
-export default function Dashboard({ currentUser }) {
+// Kinds returned by GET /api/reminders → color accent + which module a tap opens.
+const REMINDER_META = {
+  returned: { color: T.copper500, dest: "planning" },
+  overdue: { color: "#B33030", dest: "planning" },
+  due_soon: { color: T.gold600, dest: "planning" },
+  cpd: { color: "#2A5D8F", dest: "pd" },
+  hod_approval: { color: "#5C3A82", dest: "planning" },
+  supervisor_approval: { color: "#33622D", dest: "planning" },
+};
+
+function RemindersCard({ items, onNavigate }) {
+  const meta = (kind) => REMINDER_META[kind] || REMINDER_META.returned;
+  return (
+    <SectionCard title="Reminders">
+      {items.length === 0 && (
+        <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>You're all caught up — nothing needs your attention.</p>
+      )}
+      {items.map((r) => (
+        <button
+          key={r.id}
+          onClick={() => onNavigate(meta(r.kind).dest)}
+          title={`Open ${meta(r.kind).dest}`}
+          style={{
+            width: "100%", display: "flex", alignItems: "center", gap: 12,
+            padding: "10px 0", borderBottom: `1px solid ${T.line}`, borderLeft: "none",
+            borderRight: "none", borderTop: "none", background: "none",
+            textAlign: "left", cursor: "pointer", font: "inherit",
+          }}
+        >
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: meta(r.kind).color, flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{r.title}</span>
+            <span style={{ fontSize: 12, color: T.ink600 }}>{r.detail}</span>
+          </span>
+          <span style={{ fontSize: 12, color: T.ink600, flexShrink: 0 }}>Open →</span>
+        </button>
+      ))}
+    </SectionCard>
+  );
+}
+
+function AnnouncementsCard({ notes }) {
+  return (
+    <SectionCard title="Announcements">
+      {notes.length === 0 && (
+        <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>No announcements for you right now.</p>
+      )}
+      {notes.map((n) => (
+        <div key={n.id} style={{ padding: "10px 0", borderBottom: `1px solid ${T.line}` }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{n.text}</div>
+          <div style={{ fontSize: 12, color: T.ink600 }}>
+            {n.authorName} · {new Date(n.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+          </div>
+        </div>
+      ))}
+    </SectionCard>
+  );
+}
+
+export default function Dashboard({ currentUser, persona, onNavigate }) {
   const [plans, setPlans] = useState(null);
+  const [reminders, setReminders] = useState(null);
+  const [notes, setNotes] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Refetch on persona change so the "acting as" lens re-scopes the views
+    // (the backend filters by the x-active-role header sent with every request).
+    setPlans(null);
+    setReminders(null);
+    setNotes(null);
+    setError("");
     api.get("/api/plans").then(setPlans).catch((e) => setError(e.message));
-  }, []);
+    api.get("/api/reminders").then(setReminders).catch((e) => setError(e.message));
+    api.get("/api/notes").then(setNotes).catch((e) => setError(e.message));
+  }, [persona]);
 
   if (error) return <div style={{ padding: 24 }}><ErrorBanner message={error} /></div>;
-  if (!plans) return <Loading />;
+  // Notes can trail slightly behind; the other two are needed for the core view.
+  if (!plans || !reminders) return <Loading />;
 
-  const { role } = currentUser;
-
-  if (role === "teacher") {
-    const returned = plans.filter((p) => p.status === "returned");
-    const completed = plans.filter((p) => p.status === "completed").length;
-    return (
-      <div style={{ padding: "24px 28px", maxWidth: 1000, margin: "0 auto" }}>
-        <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: "0 0 18px" }}>My dashboard</h1>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
-          <StatCard label="My weekly plans" value={plans.length} />
-          <StatCard label="Awaiting my action" value={returned.length} sublabel="Returned for revision" />
-          <StatCard label="Completed" value={completed} />
-        </div>
-        <SectionCard title="Needs your attention">
-          {returned.length === 0 && <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>Nothing needs your attention right now.</p>}
-          {returned.map((p) => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${T.line}` }}>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{p.subject} · {p.grade}, {p.week}</div>
-                <div style={{ fontSize: 12, color: T.ink600 }}>{p.comments?.[p.comments.length - 1]?.text?.slice(0, 60)}</div>
-              </div>
-              <StatusBadge status={p.status} />
-            </div>
-          ))}
-        </SectionCard>
-      </div>
-    );
-  }
-
+  const isTeacher = persona === "teacher";
+  const returned = plans.filter((p) => p.status === "returned");
   const waitingOnMe = plans.filter((p) =>
-    (role === "hod" && p.status === "submitted") || (role === "supervisor" && p.status === "hod_approved")
+    (persona === "hod" && p.status === "submitted") || (persona === "supervisor" && p.status === "hod_approved")
   );
   const completed = plans.filter((p) => p.status === "completed").length;
 
   return (
     <div style={{ padding: "24px 28px", maxWidth: 1000, margin: "0 auto" }}>
-      <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: "0 0 18px" }}>Academic overview</h1>
+      <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: "0 0 18px" }}>
+        {isTeacher ? "My dashboard" : "Academic overview"}
+      </h1>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
-        <StatCard label="Total plans" value={plans.length} />
-        <StatCard label="Awaiting your decision" value={waitingOnMe.length} />
+        <StatCard label={isTeacher ? "My weekly plans" : "Total plans"} value={plans.length} />
+        <StatCard
+          label="Awaiting your action"
+          value={isTeacher ? returned.length : waitingOnMe.length}
+          sublabel={isTeacher ? "Returned for revision" : "In the review queue"}
+        />
         <StatCard label="Completed" value={completed} />
       </div>
-      <SectionCard title="Plans awaiting your review">
-        {waitingOnMe.length === 0 && <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>Nothing waiting on you right now.</p>}
-        {waitingOnMe.map((p) => (
-          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${T.line}` }}>
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{p.teacher?.name}</div>
-              <div style={{ fontSize: 12, color: T.ink600 }}>{p.subject} · {p.grade}, {p.week}</div>
-            </div>
-            <StatusBadge status={p.status} />
-          </div>
-        ))}
-      </SectionCard>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 460px", minWidth: 280 }}>
+          <RemindersCard items={reminders.items || []} onNavigate={onNavigate} />
+        </div>
+        <div style={{ flex: "1 1 460px", minWidth: 280 }}>
+          <AnnouncementsCard notes={notes || []} />
+        </div>
+      </div>
     </div>
   );
 }

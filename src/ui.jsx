@@ -13,6 +13,19 @@ export const T = {
 };
 
 export const ROLE_LABELS = { teacher: "Teacher", hod: "HOD", supervisor: "Academic Supervisor", admin: "System Admin" };
+export const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }));
+
+// True when the user holds the given role. Multi-role users carry a `roles`
+// array; the single `role` field is a fallback for older cached sessions.
+export const hasRole = (user, r) => (Array.isArray(user?.roles) ? user.roles.includes(r) : user?.role === r);
+
+// Human label for one user — joins role labels when they hold several.
+export const roleLabel = (user) => {
+  const labels = (user?.roles || (user?.role ? [user.role] : []))
+    .map((r) => ROLE_LABELS[r])
+    .filter(Boolean);
+  return (labels.length ? labels.join(" · ") : user?.role) || "Staff";
+};
 
 export const STATUS_META = {
   draft: { label: "Draft", bg: "#EFEDE7", fg: "#5B5A52" },

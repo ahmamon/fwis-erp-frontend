@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
-import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select } from "../ui";
+import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select, hasRole } from "../ui";
 
-const canManage = (user) => user && (user.role === "admin" || user.role === "supervisor");
+const canManage = (user) => user && (hasRole(user, "admin") || hasRole(user, "supervisor"));
 
 // Server enforces the same cap (multer limit); this just avoids uploading a
 // file that would be rejected.

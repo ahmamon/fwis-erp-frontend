@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input } from "../ui";
+import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, hasRole } from "../ui";
 
-const canManage = (user) => user && (user.role === "admin" || user.role === "supervisor");
+const canManage = (user) => user && (hasRole(user, "admin") || hasRole(user, "supervisor"));
 
 const CATEGORIES = [
   "Active learning",

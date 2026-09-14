@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select } from "../ui";
+import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select, hasRole } from "../ui";
 
-const canManage = (user) => user && (user.role === "hod" || user.role === "supervisor");
+const canManage = (user) => user && (hasRole(user, "hod") || hasRole(user, "supervisor"));
 const RATING_OPTIONS = [1, 2, 3, 4, 5].map((n) => ({ value: n, label: `${n}` }));
 
 export default function EvaluationEditor({ currentUser }) {
@@ -77,7 +77,7 @@ function EvaluationForm({ initial, onDone, onCancel }) {
 
   useEffect(() => {
     api.get("/api/users").then((users) => {
-      setTeachers((users || []).filter((u) => u.role === "teacher"));
+      setTeachers((users || []).filter((u) => hasRole(u, "teacher")));
     }).catch((e) => setError(e.message));
   }, []);
 

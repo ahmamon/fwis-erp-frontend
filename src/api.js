@@ -9,13 +9,34 @@ const BASE_URL = import.meta.env.VITE_API_URL;
 // email. Until then — or while the server still runs without Azure envs — the
 // app sends the dev-mode `x-dev-email` header so the rest of the app can keep
 // being tested against the live database.
+// The user's "acting as" role (set by the top-bar role switcher when someone
+// holds several roles). Sent as x-active-role so the backend scopes views to
+// that persona — it never changes what the account is allowed to do.
+const LS_ACTIVE_ROLE = "fwis_active_role";
+export function getActiveRole() {
+  try {
+    return localStorage.getItem(LS_ACTIVE_ROLE) || "";
+  } catch {
+    return "";
+  }
+}
+export function setActiveRole(role) {
+  try {
+    localStorage.setItem(LS_ACTIVE_ROLE, role);
+  } catch {
+    // storage unavailable — the persona just won't persist
+  }
+}
+
 function authHeaders() {
+  const activeRole = getActiveRole();
+  const personaHeader = activeRole ? { "x-active-role": activeRole } : {};
   if (isAzureEnabled()) {
     const token = getAuthToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return token ? { Authorization: `Bearer ${token}`, ...personaHeader } : personaHeader;
   }
   const email = localStorage.getItem("fwis_dev_email");
-  return email ? { "x-dev-email": email } : {};
+  return email ? { "x-dev-email": email, ...personaHeader } : personaHeader;
 }
 
 async function request(path, options = {}) {
@@ -113,5 +134,6 @@ export function isSignedIn() {
 
 export function signOut() {
   localStorage.removeItem("fwis_dev_email");
+  localStorage.removeItem("fwis_active_role");
   clearAuthToken();
 }

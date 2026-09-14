@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
-import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select } from "../ui";
+import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select, hasRole } from "../ui";
 
 const UNIT_FIELDS = [
   ["branchId", "Branch", "branch-select"],
@@ -28,7 +28,7 @@ const REMEDIAL_FIELDS = [
   ["newTargetDate", "New target date", "input"],
 ];
 
-const canManage = (user) => user && (user.role === "hod" || user.role === "supervisor");
+const canManage = (user) => user && (hasRole(user, "hod") || hasRole(user, "supervisor"));
 
 export default function CurriculumEditor({ currentUser }) {
   const [items, setItems] = useState(null);
@@ -261,7 +261,7 @@ function RemedialForm({ unitId, onDone, onCancel }) {
 
   useEffect(() => {
     api.get("/api/users").then((users) => {
-      setTeachers((users || []).filter((u) => u.role === "teacher"));
+      setTeachers((users || []).filter((u) => hasRole(u, "teacher")));
     }).catch(() => {});
   }, []);
 

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { T, ROLE_LABELS } from "./ui.jsx";
+import { T, ROLE_OPTIONS, roleLabel } from "./ui.jsx";
 
 const NAV = [
   { id: "dashboard", label: "Dashboard" },
@@ -12,8 +12,7 @@ const NAV = [
   { id: "resources", label: "Resources" },
   { id: "pd", label: "Professional Development" },
   { id: "evaluation", label: "Teacher Evaluation" },
-  { id: "settings", label: "Settings" },
-  { id: "admin", label: "Staff & Roles", adminOnly: true },
+  { id: "admin", label: "Admin Control Panel", roles: ["admin"] },
 ];
 
 /* ---------------------------------------------------------------------------
@@ -138,7 +137,7 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
         )}
       </div>
       <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto", overflowX: "hidden" }}>
-        {NAV.filter((item) => (!item.roles || item.roles.includes(role)) && (!item.adminOnly || role === "admin")).map((item) => {
+        {NAV.filter((item) => (!item.roles || item.roles.includes(role))).map((item) => {
           const isActive = active === item.id;
           return (
             <button
@@ -188,7 +187,11 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
   );
 }
 
-export function TopBar({ currentUser, onSignOut, title, onToggleSidebar }) {
+export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeRole, onActiveRoleChange, reminderCount = 0, onReminderClick }) {
+  // Multi-role accounts (e.g. admin + teacher) get an "acting as" switcher; the
+  // chosen persona only changes what views surface — it never narrows what the
+  // account is allowed to do (that stays union over held roles on the backend).
+  const multiRole = Array.isArray(currentUser?.roles) && currentUser.roles.length > 1;
   return (
     <header style={{
       height: 60, flexShrink: 0, background: "#fff", borderBottom: `1px solid ${T.line}`,
@@ -214,9 +217,52 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar }) {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          onClick={onReminderClick}
+          title={reminderCount > 0 ? `${reminderCount} open reminder${reminderCount === 1 ? "" : "s"}` : "Reminders"}
+          style={{
+            position: "relative", border: `1px solid ${T.line}`, background: "#fff", color: T.ink600,
+            borderRadius: 8, padding: "6px 8px", display: "flex", alignItems: "center", cursor: "pointer",
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          {reminderCount > 0 && (
+            <span style={{
+              position: "absolute", top: -5, right: -5, background: T.copper500, color: "#fff",
+              fontSize: 10, fontWeight: 700, minWidth: 15, height: 15, borderRadius: 999,
+              display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
+            }}>
+              {reminderCount > 99 ? "99+" : reminderCount}
+            </span>
+          )}
+        </button>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: T.ink900 }}>{currentUser.name}</div>
-          <div style={{ fontSize: 11, color: T.ink600 }}>{ROLE_LABELS[currentUser.role]}</div>
+          <div style={{ fontSize: 11, color: T.ink600, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+            {multiRole ? (
+              <>
+                <span style={{ color: T.ink600 }}>Acting as</span>
+                <select
+                  value={activeRole}
+                  onChange={(e) => onActiveRoleChange(e.target.value)}
+                  title="Choose which role you're acting as this session"
+                  style={{
+                    fontSize: 11.5, color: T.ink600, border: `1px solid ${T.line}`, borderRadius: 6,
+                    padding: "1px 4px", background: "#fff", cursor: "pointer",
+                  }}
+                >
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              roleLabel(currentUser)
+            )}
+          </div>
         </div>
         <button onClick={onSignOut} style={{
           border: `1px solid ${T.line}`, background: "#fff", color: T.ink600, borderRadius: 8,
@@ -232,6 +278,6 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar }) {
 export const MODULE_TITLES = {
   dashboard: "Dashboard", reports: "Report Center", profile: "My Profile", planning: "Weekly Planning",
   lessons: "Lesson Preparation", curriculum: "Curriculum Mapping", strategies: "Teaching Strategies",
-  resources: "Resources", pd: "Professional Development", evaluation: "Teacher Evaluation", settings: "Settings",
-  admin: "Staff & Roles",
+  resources: "Resources", pd: "Professional Development", evaluation: "Teacher Evaluation",
+  admin: "Admin Control Panel",
 };
