@@ -13,6 +13,7 @@ import ResourcesEditor from "./modules/ResourcesEditor.jsx";
 import PDEditor from "./modules/PDEditor.jsx";
 import EvaluationEditor from "./modules/EvaluationEditor.jsx";
 import SettingsEditor from "./modules/SettingsEditor.jsx";
+import ReportsCenter from "./modules/ReportsCenter.jsx";
 import UsersEditor from "./modules/UsersEditor.jsx";
 import { T, Loading } from "./ui.jsx";
 
@@ -78,6 +79,7 @@ export default function App() {
         <TopBar currentUser={currentUser} onSignOut={handleSignOut} title={MODULE_TITLES[module]} onToggleSidebar={sidebar.toggleCollapsed} />
         <div style={{ flex: 1, overflowY: "auto" }}>
           {module === "dashboard" && <Dashboard currentUser={currentUser} />}
+          {module === "reports" && ["hod", "supervisor", "admin"].includes(currentUser.role) && <ReportsCenter currentUser={currentUser} />}
           {module === "profile" && <ProfileView currentUser={currentUser} onUpdated={setCurrentUser} />}
           {module === "planning" && <Planning currentUser={currentUser} />}
           {module === "lessons" && <LessonsEditor currentUser={currentUser} />}

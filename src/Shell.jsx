@@ -3,6 +3,7 @@ import { T, ROLE_LABELS } from "./ui.jsx";
 
 const NAV = [
   { id: "dashboard", label: "Dashboard" },
+  { id: "reports", label: "Report Center", roles: ["hod", "supervisor", "admin"] },
   { id: "profile", label: "My Profile" },
   { id: "planning", label: "Weekly Planning" },
   { id: "lessons", label: "Lesson Preparation" },
@@ -137,7 +138,7 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
         )}
       </div>
       <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto", overflowX: "hidden" }}>
-        {NAV.filter((item) => !item.adminOnly || role === "admin").map((item) => {
+        {NAV.filter((item) => (!item.roles || item.roles.includes(role)) && (!item.adminOnly || role === "admin")).map((item) => {
           const isActive = active === item.id;
           return (
             <button
@@ -229,7 +230,7 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar }) {
 }
 
 export const MODULE_TITLES = {
-  dashboard: "Dashboard", profile: "My Profile", planning: "Weekly Planning",
+  dashboard: "Dashboard", reports: "Report Center", profile: "My Profile", planning: "Weekly Planning",
   lessons: "Lesson Preparation", curriculum: "Curriculum Mapping", strategies: "Teaching Strategies",
   resources: "Resources", pd: "Professional Development", evaluation: "Teacher Evaluation", settings: "Settings",
   admin: "Staff & Roles",
