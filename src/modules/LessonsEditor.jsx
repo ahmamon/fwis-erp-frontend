@@ -116,6 +116,7 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -160,6 +161,20 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
     }
   }
 
+  async function onExport() {
+    if (exporting || !lesson) return;
+    setExporting(true);
+    setError("");
+    try {
+      const slug = String(lesson.subject || "lesson").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "lesson";
+      await api.downloadPdf(`/api/lessons/${id}/export`, `fwis-lesson-${slug}.pdf`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
 
   return (
@@ -179,6 +194,7 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
         ))}
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+        <Button onClick={onExport} variant="outline" disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>
         <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
         {isOwner && (
           <Button onClick={remove} variant="danger" disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>

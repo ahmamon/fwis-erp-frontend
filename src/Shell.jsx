@@ -12,6 +12,7 @@ const NAV = [
   { id: "pd", label: "Professional Development" },
   { id: "evaluation", label: "Teacher Evaluation" },
   { id: "settings", label: "Settings" },
+  { id: "admin", label: "Staff & Roles", adminOnly: true },
 ];
 
 /* ---------------------------------------------------------------------------
@@ -66,7 +67,7 @@ export function useSidebarPreferences() {
   return { collapsed, toggleCollapsed, width, resize };
 }
 
-export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT_WIDTH, onResize }) {
+export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT_WIDTH, onResize, role }) {
   const asideRef = useRef(null);
   const dragging = useRef(false);
 
@@ -136,7 +137,7 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
         )}
       </div>
       <nav style={{ flex: 1, padding: "14px 10px", overflowY: "auto", overflowX: "hidden" }}>
-        {NAV.map((item) => {
+        {NAV.filter((item) => !item.adminOnly || role === "admin").map((item) => {
           const isActive = active === item.id;
           return (
             <button
@@ -231,4 +232,5 @@ export const MODULE_TITLES = {
   dashboard: "Dashboard", profile: "My Profile", planning: "Weekly Planning",
   lessons: "Lesson Preparation", curriculum: "Curriculum Mapping", strategies: "Teaching Strategies",
   resources: "Resources", pd: "Professional Development", evaluation: "Teacher Evaluation", settings: "Settings",
+  admin: "Staff & Roles",
 };

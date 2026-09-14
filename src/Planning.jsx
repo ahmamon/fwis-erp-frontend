@@ -68,9 +68,14 @@ export default function Planning({ currentUser }) {
   );
 }
 
+function slug(text) {
+  return String(text || "plan").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "plan";
+}
+
 function PlanDetail({ id, currentUser, onBack }) {
   const [plan, setPlan] = useState(null);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [returnNote, setReturnNote] = useState("");
   const [showReturnBox, setShowReturnBox] = useState(false);
 
@@ -78,6 +83,18 @@ function PlanDetail({ id, currentUser, onBack }) {
     api.get(`/api/plans/${id}`).then(setPlan).catch((e) => setError(e.message));
   }
   useEffect(reload, [id]);
+
+  async function onExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await api.downloadPdf(`/api/plans/${id}/export`, `fwis-weekly-plan-${slug(plan.subject)}.pdf`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function save() {
     try {
@@ -131,6 +148,7 @@ function PlanDetail({ id, currentUser, onBack }) {
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.line}` }}>
+        <Button variant="outline" onClick={onExport} disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>
         {canEdit && <Button variant="outline" onClick={save}>Save draft</Button>}
         {canEdit && <Button onClick={submit}>{plan.status === "returned" ? "Resubmit" : "Submit for review"}</Button>}
         {canReview && !showReturnBox && <Button variant="success" onClick={approve}>Approve</Button>}

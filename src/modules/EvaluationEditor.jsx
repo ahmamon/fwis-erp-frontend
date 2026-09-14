@@ -189,6 +189,7 @@ function EvaluationDetail({ id, onBack, onChanged, currentUser }) {
   const [evaluation, setEvaluation] = useState(null);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -196,6 +197,20 @@ function EvaluationDetail({ id, onBack, onChanged, currentUser }) {
   }, [id]);
 
   if (!evaluation) return <Loading />;
+
+  async function onExport() {
+    if (exporting) return;
+    setExporting(true);
+    setError("");
+    try {
+      const slug = String(evaluation.teacher?.name || "teacher").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "teacher";
+      await api.downloadPdf(`/api/evaluations/${id}/export`, `fwis-evaluation-${slug}.pdf`);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function remove() {
     if (!window.confirm("Delete this evaluation?")) return;
@@ -212,7 +227,12 @@ function EvaluationDetail({ id, onBack, onChanged, currentUser }) {
   }
 
   return (
-    <SectionCard title={`Evaluation — ${evaluation.teacher?.name || ""}`} right={<Button onClick={onBack} variant="outline">Back to list</Button>}>
+    <SectionCard title={`Evaluation — ${evaluation.teacher?.name || ""}`} right={
+      <>
+        <Button style={{ marginRight: 8 }} onClick={onExport} variant="outline" disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>
+        <Button onClick={onBack} variant="outline">Back to list</Button>
+      </>
+    }>
       <ErrorBanner message={error} />
       <div style={{ fontSize: 13, color: T.ink600, marginBottom: 14 }}>
         By {evaluation.evaluator?.name || "—"} · Average {avgRating(evaluation) ? `${avgRating(evaluation).toFixed(1)} / 5` : "—"}

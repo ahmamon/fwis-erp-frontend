@@ -13,6 +13,7 @@ import ResourcesEditor from "./modules/ResourcesEditor.jsx";
 import PDEditor from "./modules/PDEditor.jsx";
 import EvaluationEditor from "./modules/EvaluationEditor.jsx";
 import SettingsEditor from "./modules/SettingsEditor.jsx";
+import UsersEditor from "./modules/UsersEditor.jsx";
 import { T, Loading } from "./ui.jsx";
 
 export default function App() {
@@ -72,7 +73,7 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100%", background: T.cream50, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", overflow: "hidden" }}>
-      <Sidebar active={module} onNavigate={setModule} collapsed={sidebar.collapsed} width={sidebar.width} onResize={sidebar.resize} />
+      <Sidebar active={module} onNavigate={setModule} collapsed={sidebar.collapsed} width={sidebar.width} onResize={sidebar.resize} role={currentUser.role} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <TopBar currentUser={currentUser} onSignOut={handleSignOut} title={MODULE_TITLES[module]} onToggleSidebar={sidebar.toggleCollapsed} />
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -86,6 +87,7 @@ export default function App() {
           {module === "pd" && <PDEditor currentUser={currentUser} />}
           {module === "evaluation" && <EvaluationEditor currentUser={currentUser} />}
           {module === "settings" && <SettingsEditor currentUser={currentUser} />}
+          {module === "admin" && currentUser.role === "admin" && <UsersEditor currentUser={currentUser} />}
         </div>
       </div>
     </div>

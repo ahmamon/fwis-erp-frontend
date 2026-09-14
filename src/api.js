@@ -67,6 +67,20 @@ export const api = {
     return res.blob();
   },
 
+  // Reuse the authenticated blob fetch above, then click it into a download.
+  // Used by the Export PDF buttons on the record detail screens.
+  downloadPdf: async (path, fallbackName) => {
+    const blob = await api.download(path);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fallbackName || "export.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  },
+
   // File uploads use multipart/form-data, not JSON
   postForm: async (path, formData) => {
     const res = await fetch(`${BASE_URL}${path}`, {
