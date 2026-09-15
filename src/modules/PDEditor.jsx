@@ -111,6 +111,20 @@ function MyPD({ record, onChanged }) {
     <SectionCard title={`My Professional Development — ${record.cpdCompleted ?? 0} / ${record.cpdTarget ?? 30} hours`}>
       <ErrorBanner message={error} />
 
+      {/* Landing from a CPD reminder should show one obvious next step. */}
+      {((record.cpdTarget ?? 30) - (record.cpdCompleted ?? 0)) > 0 && (
+        <div style={{
+          border: `1px solid ${T.gold500}`, background: T.cream100, borderRadius: 10,
+          padding: "12px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between",
+          alignItems: "center", gap: 12, flexWrap: "wrap",
+        }}>
+          <div style={{ fontSize: 13.5, color: T.ink900 }}>
+            You're <strong>{((record.cpdTarget ?? 30) - (record.cpdCompleted ?? 0))}h short</strong> of your
+            {" "}{record.cpdTarget ?? 30}h target this year. Add a training below to close the gap.
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 22 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: T.navy900, marginBottom: 10 }}>Trainings</div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>

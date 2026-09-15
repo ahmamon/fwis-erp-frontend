@@ -72,9 +72,21 @@ export default function App() {
 
   // Keep the top-bar bell fresh with the current persona's reminder count —
   // refetch on session load and whenever the user re-enters the dashboard.
+  // Keep the top-bar bell fresh: refetch on session load, on persona change,
+  // and on any navigation — so the badge reflects reality wherever the user
+  // is, not only when they happen to visit the dashboard.
   useEffect(() => {
-    if (currentUser && module === "dashboard") refreshReminders();
+    if (currentUser) refreshReminders();
   }, [currentUser, module, activeRole]);
+
+  // A stale badge while the teacher is away in another tab is the classic
+  // "bell doesn't work" complaint — refresh when they come back to the app.
+  useEffect(() => {
+    if (!currentUser) return undefined;
+    const onFocus = () => refreshReminders();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [currentUser]);
 
   if (!checkedSession) return <Loading label="Checking session..." />;
 
