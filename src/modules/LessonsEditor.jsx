@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, StatusBadge, Input, Select, hasRole } from "../ui";
 
@@ -118,6 +118,10 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
+  const pdfRef = useRef(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfNote, setPdfNote] = useState("");
+  const [aiNote, setAiNote] = useState("");
 
   useEffect(() => {
     api.get(`/api/lessons/${id}`).then((data) => {
@@ -175,12 +179,52 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
     }
   }
 
+  async function onAutofill() {
+    const file = pdfRef.current?.files?.[0];
+    if (!file) {
+      setAiNote("");
+      setPdfNote("Choose a PDF to read first.");
+      return;
+    }
+    setPdfBusy(true);
+    setPdfNote("");
+    setAiNote("");
+    setError("");
+    try {
+      const fd = new FormData();
+      fd.append("pdf", file);
+      const { fields } = await api.postForm(`/api/lessons/${id}/autofill`, fd);
+      setForm((f) => ({ ...f, ...fields }));
+      setPdfNote("From your PDF — review the fields below before saving.");
+    } catch (e) {
+      if (e.code === "AI_NOT_CONFIGURED") {
+        setAiNote("AI isn't set up yet — add a free Gemini API key (no card required) to enable Fill from PDF.");
+      } else {
+        setPdfNote(e.message);
+      }
+    } finally {
+      setPdfBusy(false);
+    }
+  }
+
   const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
 
   return (
     <SectionCard title={lesson.subject || "Lesson"}
       right={<Button onClick={onBack} variant="outline">Back to list</Button>}>
       <ErrorBanner message={error} />
+      {aiNote && (
+        <div style={{ background: T.cream100, border: `1px solid ${T.gold500}`, borderRadius: 8, padding: "10px 14px", fontSize: 13.5, color: T.ink900, marginBottom: 14 }}>
+          {aiNote}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <input type="file" ref={pdfRef} accept="application/pdf" style={{ fontSize: 12.5, color: T.ink600 }} />
+        <Button onClick={onAutofill} variant="outline" disabled={pdfBusy} style={{ padding: "6px 14px" }}>
+          {pdfBusy ? "Reading…" : "Fill from PDF"}
+        </Button>
+        {pdfNote && <span style={{ fontSize: 12.5, color: T.ink600 }}>{pdfNote}</span>}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
         <div>
           <FieldLabel>Status</FieldLabel>

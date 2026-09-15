@@ -51,13 +51,19 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    let code = "";
     try {
       const body = await res.json();
       if (body.error) message = body.error;
+      if (body.code) code = body.code;
     } catch {
       // response wasn't JSON — keep the generic message
     }
-    throw new Error(message);
+    // Some callers (AI features) branch on the backend's error code, e.g.
+    // AI_NOT_CONFIGURED — carry it through without disturbing existing callers.
+    const err = new Error(message);
+    err.code = code;
+    throw err;
   }
 
   if (res.status === 204) return null;
@@ -111,7 +117,9 @@ export const api = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `Request failed (${res.status})`);
+      const err = new Error(body.error || `Request failed (${res.status})`);
+      err.code = body.code || "";
+      throw err;
     }
     return res.json();
   },

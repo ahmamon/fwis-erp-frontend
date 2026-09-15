@@ -11,6 +11,7 @@ const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const KIND_OPTIONS = [
   { value: "link", label: "Link" },
   { value: "file", label: "File" },
+  { value: "text", label: "Text" },
 ];
 
 export default function ResourcesEditor({ currentUser }) {
@@ -56,7 +57,7 @@ export default function ResourcesEditor({ currentUser }) {
 }
 
 function ResourceForm({ initial, onDone, onCancel }) {
-  const [form, setForm] = useState(initial || { kind: "link", name: "", category: "", subject: "", grade: "", description: "", externalUrl: "" });
+  const [form, setForm] = useState(initial || { kind: "link", name: "", category: "", subject: "", grade: "", description: "", externalUrl: "", sourceText: "" });
   const fileRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -73,6 +74,7 @@ function ResourceForm({ initial, onDone, onCancel }) {
       description: form.description,
     };
     if (form.kind === "link") body.externalUrl = form.externalUrl;
+    if (form.kind === "text") body.sourceText = form.sourceText;
     return body;
   }
 
@@ -80,9 +82,13 @@ function ResourceForm({ initial, onDone, onCancel }) {
     setSaving(true);
     setError("");
     try {
-      if (form.kind === "link") {
-        if (!form.externalUrl.trim()) {
+      if (form.kind === "link" || form.kind === "text") {
+        if (form.kind === "link" && !form.externalUrl.trim()) {
           setError("A link resource needs a URL.");
+          return;
+        }
+        if (form.kind === "text" && !form.sourceText.trim()) {
+          setError("Pasted text is required for text resources.");
           return;
         }
         if (initial) {
@@ -146,6 +152,11 @@ function ResourceForm({ initial, onDone, onCancel }) {
             <FieldLabel>URL</FieldLabel>
             <Input value={form.externalUrl} onChange={set("externalUrl")} placeholder="https://..." />
           </div>
+        ) : form.kind === "text" ? (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <FieldLabel required>Pasted text</FieldLabel>
+            <TextField value={form.sourceText} onChange={set("sourceText")} rows={5} placeholder="Paste the reading, notes, or passage you want practice questions from..." />
+          </div>
         ) : (
           <div style={{ gridColumn: "1 / -1" }}>
             <FieldLabel>{initial ? "Replace file (optional)" : "File"}</FieldLabel>
@@ -171,6 +182,10 @@ function ResourceRow({ resource, canManage, onChanged }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
   const [error, setError] = useState("");
+  const [bankOpen, setBankOpen] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   async function remove() {
     if (!window.confirm(`Delete "${resource.name}"?`)) return;
@@ -216,6 +231,58 @@ function ResourceRow({ resource, canManage, onChanged }) {
       window.open(URL.createObjectURL(blob), "_blank");
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  // --- AI question bank ---
+  async function loadBank() {
+    setAiError("");
+    try {
+      const list = await api.get(`/api/resources/${resource.id}/questions`);
+      setQuestions(list);
+      setBankOpen(true);
+    } catch (e) {
+      setAiError(e.message);
+    }
+  }
+
+  async function generateQuestions() {
+    setAiBusy(true);
+    setAiError("");
+    try {
+      await api.post(`/api/resources/${resource.id}/generate-questions`, { count: 6 });
+      const list = await api.get(`/api/resources/${resource.id}/questions`);
+      setQuestions(list);
+      setBankOpen(true);
+    } catch (e) {
+      if (e.code === "AI_NOT_CONFIGURED") {
+        setAiError("__AI_NOT_CONFIGURED__");
+      } else {
+        setAiError(e.message);
+      }
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function saveQuestion(id, updates) {
+    setAiError("");
+    try {
+      await api.patch(`/api/questions/${id}`, updates);
+      setQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, ...updates } : q)));
+    } catch (e) {
+      setAiError(e.message);
+    }
+  }
+
+  async function deleteQuestion(id) {
+    if (!window.confirm("Discard this question?")) return;
+    setAiError("");
+    try {
+      await api.del(`/api/questions/${id}`);
+      setQuestions((prev) => prev.filter((q) => q.id !== id));
+    } catch (e) {
+      setAiError(e.message);
     }
   }
 
@@ -271,6 +338,122 @@ function ResourceRow({ resource, canManage, onChanged }) {
           <Button onClick={uploadVersion} variant="outline" disabled={uploading} style={{ padding: "6px 12px" }}>{uploading ? "Uploading..." : "Add version"}</Button>
         </div>
       )}
+
+      {/* AI question bank */}
+      {canManage && (
+        <div style={{ marginTop: 12, borderTop: `1px solid ${T.line}`, paddingTop: 12 }}>
+          {aiError === "__AI_NOT_CONFIGURED__" && (
+            <div style={{ background: T.cream100, border: `1px solid ${T.gold500}`, borderRadius: 8, padding: "10px 14px", fontSize: 13.5, color: T.ink900, marginBottom: 10 }}>
+              AI questions aren't set up yet — add a free Gemini API key (no card required) to the backend to enable question generation.
+            </div>
+          )}
+          {aiError && aiError !== "__AI_NOT_CONFIGURED__" && <ErrorBanner message={aiError} />}
+          <div style={{ display: "flex", gap: 8, marginBottom: bankOpen && questions.length ? 10 : 0 }}>
+            <Button onClick={generateQuestions} variant="outline" disabled={aiBusy} style={{ padding: "6px 14px" }}>
+              {aiBusy ? "Generating…" : "Generate Questions"}
+            </Button>
+            {questions.length > 0 && (
+              <Button onClick={() => (bankOpen ? setBankOpen(false) : loadBank())} variant="outline" style={{ padding: "6px 14px" }}>
+                {bankOpen ? "Hide bank" : `View bank (${questions.length})`}
+              </Button>
+            )}
+          </div>
+          {bankOpen && questions.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+              {questions.map((q) => (
+                <QuestionRow key={q.id} question={q} onSave={saveQuestion} onDelete={deleteQuestion} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionRow({ question, onSave, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({
+    text: question.text,
+    answer: question.answer,
+    explanation: question.explanation,
+    options: (question.options || []).join(", "),
+  });
+  const [saving, setSaving] = useState(false);
+
+  function beginEdit() {
+    setDraft({
+      text: question.text,
+      answer: question.answer,
+      explanation: question.explanation,
+      options: (question.options || []).join(", "),
+    });
+    setEditing(true);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const options = question.kind === "mcq" ? draft.options.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean) : undefined;
+      const updates = {
+        text: draft.text.trim(),
+        answer: draft.answer.trim(),
+        explanation: draft.explanation.trim(),
+      };
+      if (options) updates.options = options;
+      await onSave(question.id, updates);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const set = (key) => (v) => setDraft((d) => ({ ...d, [key]: v }));
+
+  return (
+    <div style={{ border: `1px solid ${T.line}`, borderRadius: 8, padding: "10px 12px", background: T.cream50 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ background: T.navy700, color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>
+              {question.kind}
+            </span>
+            <span style={{ fontSize: 12, color: T.ink900 }}>Answer: <strong>{question.answer}</strong></span>
+            {question.createdBy?.name && <span style={{ fontSize: 12, color: T.ink600 }}>by {question.createdBy.name}</span>}
+          </div>
+          {editing ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+              <TextField value={draft.text} onChange={set("text")} rows={2} placeholder="Question" />
+              {question.kind === "mcq" && (
+                <TextField value={draft.options} onChange={set("options")} rows={2} placeholder="Options, comma-separated" />
+              )}
+              <TextField value={draft.answer} onChange={set("answer")} rows={1} placeholder="Answer" />
+              <TextField value={draft.explanation} onChange={set("explanation")} rows={2} placeholder="Explanation (optional)" />
+            </div>
+          ) : (
+            <div style={{ fontSize: 13.5, color: T.ink900, marginTop: 6 }}>
+              {question.text}
+              {question.kind === "mcq" && question.options && question.options.length > 0 && (
+                <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 4 }}>{question.options.join(" · ")}</div>
+              )}
+              {question.explanation && <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 4, fontStyle: "italic" }}>{question.explanation}</div>}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, alignSelf: "flex-start" }}>
+          {editing && !saving ? (
+            <>
+              <Button onClick={save} style={{ padding: "4px 12px", fontSize: 12.5 }}>Save</Button>
+              <Button onClick={() => setEditing(false)} variant="outline" style={{ padding: "4px 12px", fontSize: 12.5 }}>Cancel</Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={beginEdit} variant="outline" style={{ padding: "4px 12px", fontSize: 12.5 }}>Edit</Button>
+              <Button onClick={() => onDelete(question.id)} variant="danger" style={{ padding: "4px 12px", fontSize: 12.5 }}>Discard</Button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
