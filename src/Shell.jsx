@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
-import { T, ROLE_OPTIONS, roleLabel } from "./ui.jsx";
+import { T, ROLE_OPTIONS, roleLabel, LangSwitcher } from "./ui.jsx";
+import { useLang } from "./i18n.jsx";
 
 const NAV = [
   { id: "dashboard", label: "Dashboard" },
+  { id: "calendar", label: "School Calendar" },
   { id: "reports", label: "Report Center", roles: ["hod", "supervisor", "admin"] },
   { id: "profile", label: "My Profile" },
   { id: "planning", label: "Weekly Planning" },
@@ -70,6 +72,7 @@ export function useSidebarPreferences() {
 export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT_WIDTH, onResize, role }) {
   const asideRef = useRef(null);
   const dragging = useRef(false);
+  const { t } = useLang();
 
   function startDrag(e) {
     e.preventDefault();
@@ -129,9 +132,9 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
           <div style={{ fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 700, color: T.gold500 }}>FW</div>
         ) : (
           <>
-            <div style={{ fontFamily: "Georgia, serif", fontSize: 15, fontWeight: 700, color: T.gold500 }}>Future Window</div>
+            <div style={{ fontFamily: "Georgia, serif", fontSize: 15, fontWeight: 700, color: T.gold500 }}>{t("Future Window")}</div>
             <div style={{ fontSize: 10.5, letterSpacing: 1, color: "rgba(250,248,243,0.65)", marginTop: 2 }}>
-              INTERNATIONAL SCHOOL
+              {t("INTERNATIONAL SCHOOL")}
             </div>
           </>
         )}
@@ -143,7 +146,7 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              title={rail ? item.label : undefined}
+              title={rail ? t(item.label) : undefined}
               style={{
                 width: "100%",
                 display: "block",
@@ -161,7 +164,7 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
                 overflow: "hidden",
               }}
             >
-              {rail ? item.label[0] : item.label}
+              {rail ? t(item.label)[0] : t(item.label)}
             </button>
           );
         })}
@@ -169,10 +172,10 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
       {!rail && (
         <div
           onMouseDown={startDrag}
-          title="Drag to resize"
+          title={t("Drag to resize")}
           style={{
             position: "absolute",
-            top: 0, right: 0,
+            top: 0, insetInlineEnd: 0,
             width: 6, height: "100%",
             cursor: "col-resize",
             zIndex: 5,
@@ -188,6 +191,7 @@ export function Sidebar({ active, onNavigate, collapsed = false, width = DEFAULT
 }
 
 export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeRole, onActiveRoleChange, reminderCount = 0, onReminderClick }) {
+  const { t } = useLang();
   // Multi-role accounts (e.g. admin + teacher) get an "acting as" switcher; the
   // chosen persona only changes what views surface — it never narrows what the
   // account is allowed to do (that stays union over held roles on the backend).
@@ -201,7 +205,7 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            title="Toggle sidebar"
+            title={t("Toggle sidebar")}
             style={{
               border: `1px solid ${T.line}`, background: "#fff", color: T.ink600, borderRadius: 8,
               padding: "6px 8px", display: "flex", alignItems: "center", cursor: "pointer", flexShrink: 0,
@@ -213,13 +217,14 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
           </button>
         )}
         <div style={{ fontFamily: "Georgia, serif", fontSize: 17, fontWeight: 700, color: T.navy900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {title}
+          {t(title)}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <LangSwitcher />
         <button
           onClick={onReminderClick}
-          title={reminderCount > 0 ? `${reminderCount} open reminder${reminderCount === 1 ? "" : "s"}` : "Reminders"}
+          title={reminderCount > 0 ? `${reminderCount} ${t(reminderCount === 1 ? "open reminder" : "open reminders")}` : t("Reminders")}
           style={{
             position: "relative", border: `1px solid ${T.line}`, background: "#fff", color: T.ink600,
             borderRadius: 8, padding: "6px 8px", display: "flex", alignItems: "center", cursor: "pointer",
@@ -231,7 +236,7 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
           </svg>
           {reminderCount > 0 && (
             <span style={{
-              position: "absolute", top: -5, right: -5, background: T.copper500, color: "#fff",
+              position: "absolute", top: -5, insetInlineEnd: -5, background: T.copper500, color: "#fff",
               fontSize: 10, fontWeight: 700, minWidth: 15, height: 15, borderRadius: 999,
               display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
             }}>
@@ -239,23 +244,23 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
             </span>
           )}
         </button>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: "start" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: T.ink900 }}>{currentUser.name}</div>
           <div style={{ fontSize: 11, color: T.ink600, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
             {multiRole ? (
               <>
-                <span style={{ color: T.ink600 }}>Acting as</span>
+                <span style={{ color: T.ink600 }}>{t("Acting as")}</span>
                 <select
                   value={activeRole}
                   onChange={(e) => onActiveRoleChange(e.target.value)}
-                  title="Choose which role you're acting as this session"
+                  title={t("Choose which role you're acting as this session")}
                   style={{
                     fontSize: 11.5, color: T.ink600, border: `1px solid ${T.line}`, borderRadius: 6,
                     padding: "1px 4px", background: "#fff", cursor: "pointer",
                   }}
                 >
                   {ROLE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
                   ))}
                 </select>
               </>
@@ -268,7 +273,7 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
           border: `1px solid ${T.line}`, background: "#fff", color: T.ink600, borderRadius: 8,
           padding: "7px 12px", fontSize: 12.5, fontWeight: 600, cursor: "pointer",
         }}>
-          Sign out
+          {t("Sign out")}
         </button>
       </div>
     </header>
@@ -276,7 +281,7 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
 }
 
 export const MODULE_TITLES = {
-  dashboard: "Dashboard", reports: "Report Center", profile: "My Profile", planning: "Weekly Planning",
+  dashboard: "Dashboard", calendar: "School Calendar", reports: "Report Center", profile: "My Profile", planning: "Weekly Planning",
   lessons: "Lesson Preparation", curriculum: "Curriculum Mapping", strategies: "Teaching Strategies",
   resources: "Resources", pd: "Professional Development", evaluation: "Teacher Evaluation",
   admin: "Admin Control Panel",

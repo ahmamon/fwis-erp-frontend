@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { T, Loading, ErrorBanner, SectionCard } from "./ui.jsx";
+import { useLang } from "./i18n.jsx";
 
 function StatCard({ label, value, sublabel }) {
   return (
@@ -20,14 +21,16 @@ const REMINDER_META = {
   cpd: { color: "#2A5D8F", dest: "pd" },
   hod_approval: { color: "#5C3A82", dest: "planning" },
   supervisor_approval: { color: "#33622D", dest: "planning" },
+  event: { color: "#2A5D8F", dest: "calendar" },
 };
 
 function RemindersCard({ items, onNavigate }) {
+  const { t } = useLang();
   const meta = (kind) => REMINDER_META[kind] || REMINDER_META.returned;
   return (
-    <SectionCard title="Reminders">
+    <SectionCard title={t("Reminders")}>
       {items.length === 0 && (
-        <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>You're all caught up — nothing needs your attention.</p>
+        <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>{t("You're all caught up — nothing needs your attention.")}</p>
       )}
       {items.map((r) => (
         <button
@@ -38,7 +41,7 @@ function RemindersCard({ items, onNavigate }) {
             width: "100%", display: "flex", alignItems: "center", gap: 12,
             padding: "10px 0", borderBottom: `1px solid ${T.line}`, borderLeft: "none",
             borderRight: "none", borderTop: "none", background: "none",
-            textAlign: "left", cursor: "pointer", font: "inherit",
+            textAlign: "start", cursor: "pointer", font: "inherit",
           }}
         >
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: meta(r.kind).color, flexShrink: 0 }} />
@@ -46,7 +49,7 @@ function RemindersCard({ items, onNavigate }) {
             <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{r.title}</span>
             <span style={{ fontSize: 12, color: T.ink600 }}>{r.detail}</span>
           </span>
-          <span style={{ fontSize: 12, color: T.ink600, flexShrink: 0 }}>Open →</span>
+          <span style={{ fontSize: 12, color: T.ink600, flexShrink: 0 }}>{t("Open →")}</span>
         </button>
       ))}
     </SectionCard>
@@ -54,10 +57,11 @@ function RemindersCard({ items, onNavigate }) {
 }
 
 function AnnouncementsCard({ notes }) {
+  const { t } = useLang();
   return (
-    <SectionCard title="Announcements">
+    <SectionCard title={t("Announcements")}>
       {notes.length === 0 && (
-        <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>No announcements for you right now.</p>
+        <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>{t("No announcements for you right now.")}</p>
       )}
       {notes.map((n) => (
         <div key={n.id} style={{ padding: "10px 0", borderBottom: `1px solid ${T.line}` }}>
@@ -72,6 +76,7 @@ function AnnouncementsCard({ notes }) {
 }
 
 export default function Dashboard({ currentUser, persona, onNavigate }) {
+  const { t } = useLang();
   const [plans, setPlans] = useState(null);
   const [reminders, setReminders] = useState(null);
   const [notes, setNotes] = useState(null);
@@ -103,16 +108,16 @@ export default function Dashboard({ currentUser, persona, onNavigate }) {
   return (
     <div style={{ padding: "24px 28px", maxWidth: 1000, margin: "0 auto" }}>
       <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: "0 0 18px" }}>
-        {isTeacher ? "My dashboard" : "Academic overview"}
+        {t(isTeacher ? "My dashboard" : "Academic overview")}
       </h1>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 18 }}>
-        <StatCard label={isTeacher ? "My weekly plans" : "Total plans"} value={plans.length} />
+        <StatCard label={t(isTeacher ? "My weekly plans" : "Total plans")} value={plans.length} />
         <StatCard
-          label="Awaiting your action"
+          label={t("Awaiting your action")}
           value={isTeacher ? returned.length : waitingOnMe.length}
-          sublabel={isTeacher ? "Returned for revision" : "In the review queue"}
+          sublabel={t(isTeacher ? "Returned for revision" : "In the review queue")}
         />
-        <StatCard label="Completed" value={completed} />
+        <StatCard label={t("Completed")} value={completed} />
       </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 460px", minWidth: 280 }}>

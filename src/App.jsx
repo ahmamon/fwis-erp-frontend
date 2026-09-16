@@ -5,6 +5,7 @@ import LoginScreen from "./LoginScreen.jsx";
 import { Sidebar, TopBar, MODULE_TITLES, useSidebarPreferences } from "./Shell.jsx";
 import Dashboard from "./Dashboard.jsx";
 import Planning from "./Planning.jsx";
+import Calendar from "./modules/Calendar.jsx";
 import { ProfileView } from "./OtherModules.jsx";
 import LessonsEditor from "./modules/LessonsEditor.jsx";
 import CurriculumEditor from "./modules/CurriculumEditor.jsx";
@@ -126,6 +127,7 @@ export default function App() {
         <TopBar currentUser={currentUser} onSignOut={handleSignOut} title={MODULE_TITLES[module]} onToggleSidebar={sidebar.toggleCollapsed} activeRole={activeRole} onActiveRoleChange={handleRoleChange} reminderCount={reminderCount} onReminderClick={() => setModule("dashboard")} />
         <div style={{ flex: 1, overflowY: "auto" }}>
           {module === "dashboard" && <Dashboard currentUser={currentUser} persona={activeRole} onNavigate={setModule} />}
+          {module === "calendar" && <Calendar currentUser={currentUser} />}
           {module === "reports" && ["hod", "supervisor", "admin"].some((r) => hasRole(currentUser, r)) && <ReportsCenter currentUser={currentUser} />}
           {module === "profile" && <ProfileView currentUser={currentUser} onUpdated={applyUser} />}
           {module === "planning" && <Planning currentUser={currentUser} persona={activeRole} />}

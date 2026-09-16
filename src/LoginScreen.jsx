@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, setSignedInEmail } from "./api.js";
 import { isAzureEnabled, signInWithMicrosoft } from "./auth.js";
-import { T, roleLabel, Loading, ErrorBanner } from "./ui.jsx";
+import { T, roleLabel, Loading, ErrorBanner, LangSwitcher } from "./ui.jsx";
+import { useLang } from "./i18n.jsx";
 
 /* ---------- logo-ring keyframes (once per page load) ---------- */
 const RING_KEYFRAMES_ID = "__fwis-logo-ring";
@@ -18,6 +19,7 @@ if (typeof document !== "undefined" && !document.getElementById(RING_KEYFRAMES_I
 }
 
 export default function LoginScreen({ onSignedIn, externalError = "", onClearExternalError }) {
+  const { t } = useLang();
   const [showPicker, setShowPicker] = useState(false);
   const [azureBusy, setAzureBusy] = useState(false);
   const [users, setUsers] = useState(null);
@@ -39,7 +41,7 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
       // onSignedIn() — the bounce-back reload reports the user via App.jsx's
       // handleRedirectResult() + /api/users/me.
     } catch (e) {
-      setError(e.message || "Microsoft sign-in did not complete. Check the Azure AD app registration.");
+      setError(e.message || t("Microsoft sign-in did not complete. Check the Azure AD app registration."));
     } finally {
       setAzureBusy(false);
     }
@@ -69,14 +71,20 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
       background: `radial-gradient(circle at 50% 38%, ${T.navy700} 0%, ${T.navy900} 60%, #081729 100%)`,
       display: "flex", alignItems: "center", justifyContent: "center",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: 24,
+      position: "relative",
     }}>
+      {/* Language switch pinned to the corner so a non-English speaker can
+          pick their language before signing in. */}
+      <div style={{ position: "absolute", top: 18, insetInlineEnd: 18, zIndex: 5 }}>
+        <LangSwitcher compact />
+      </div>
       {!showPicker ? (
         <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
           <div style={{ fontFamily: "Georgia, serif", fontSize: 30, fontWeight: 700, color: T.gold500, marginBottom: 8 }}>
-            Future Window International School
+            {t("Future Window International School")}
           </div>
           <div style={{ fontSize: 14, color: "rgba(250,248,243,0.75)", marginBottom: 40 }}>
-            Academic Planning &amp; Performance System
+            {t("Academic Planning & Performance System")}
           </div>
 
           {/* School logo, ringed by a slowly rotating gold halo */}
@@ -104,7 +112,7 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
             />
           </div>
 
-          {shownError && <div style={{ maxWidth: 380, margin: "0 auto 18px", textAlign: "left" }}><ErrorBanner message={shownError} /></div>}
+          {shownError && <div style={{ maxWidth: 380, margin: "0 auto 18px", textAlign: "start" }}><ErrorBanner message={shownError} /></div>}
           {isAzureEnabled() ? (
             <button onClick={signInMicrosoft} disabled={azureBusy} style={{
               width: "100%", maxWidth: 340, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 12,
@@ -117,7 +125,7 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
                 <rect x="1" y="13" width="9" height="9" fill="#00a4ef" />
                 <rect x="13" y="13" width="9" height="9" fill="#ffb900" />
               </svg>
-              {azureBusy ? "Signing in…" : "Sign in with Microsoft 365"}
+              {azureBusy ? t("Signing in…") : t("Sign in with Microsoft 365")}
             </button>
           ) : (
             <button onClick={() => setShowPicker(true)} style={{
@@ -125,23 +133,23 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
               border: `1.5px solid ${T.gold500}`, background: "rgba(198,161,91,0.08)", color: T.gold500,
               borderRadius: 12, padding: "15px 0", fontSize: 15.5, fontWeight: 700, cursor: "pointer",
             }}>
-              Sign in
+              {t("Sign in")}
             </button>
           )}
           <p style={{ fontSize: 12, color: "rgba(250,248,243,0.55)", marginTop: 20, lineHeight: 1.6 }}>
             {isAzureEnabled()
-              ? "Sign in with your school's Microsoft 365 account. Access is limited to staff registered in the system."
-              : "Development sign-in — lists real accounts from the live database. Real Microsoft 365 sign-in replaces this screen once Azure AD is configured."}
+              ? t("Sign in with your school's Microsoft 365 account. Access is limited to staff registered in the system.")
+              : t("Development sign-in — lists real accounts from the live database. Real Microsoft 365 sign-in replaces this screen once Azure AD is configured.")}
           </p>
         </div>
       ) : (
         <div style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 380, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "20px 22px 14px", borderBottom: `1px solid ${T.line}` }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.navy900, marginBottom: 10 }}>Pick an account</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.navy900, marginBottom: 10 }}>{t("Pick an account")}</div>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name or email..."
+              placeholder={t("Search name or email...")}
               style={{ width: "100%", padding: "8px 10px", border: `1px solid ${T.line}`, borderRadius: 8, fontSize: 13, boxSizing: "border-box" }}
             />
           </div>
@@ -151,7 +159,7 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
             {visible.map((u) => (
               <button key={u.id} onClick={() => choose(u.email)} style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 22px",
-                border: "none", borderBottom: `1px solid ${T.line}`, background: "#fff", cursor: "pointer", textAlign: "left",
+                border: "none", borderBottom: `1px solid ${T.line}`, background: "#fff", cursor: "pointer", textAlign: "start",
               }}>
                 <div style={{
                   width: 34, height: 34, borderRadius: "50%", background: T.navy800, color: T.gold500,

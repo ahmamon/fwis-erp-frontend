@@ -1,3 +1,5 @@
+import { useLang, LANGUAGES } from "./i18n.jsx";
+
 export const T = {
   navy900: "#0B1F3A",
   navy800: "#122A4C",
@@ -20,11 +22,13 @@ export const ROLE_OPTIONS = Object.entries(ROLE_LABELS).map(([value, label]) => 
 export const hasRole = (user, r) => (Array.isArray(user?.roles) ? user.roles.includes(r) : user?.role === r);
 
 // Human label for one user — joins role labels when they hold several.
+// Reads the active language at render time so role badges follow the UI.
 export const roleLabel = (user) => {
+  const { t } = useLang();
   const labels = (user?.roles || (user?.role ? [user.role] : []))
     .map((r) => ROLE_LABELS[r])
     .filter(Boolean);
-  return (labels.length ? labels.join(" · ") : user?.role) || "Staff";
+  return (labels.length ? labels.map((l) => t(l)).join(" · ") : user?.role) || t("Staff");
 };
 
 export const STATUS_META = {
@@ -36,6 +40,7 @@ export const STATUS_META = {
 };
 
 export function StatusBadge({ status }) {
+  const { t } = useLang();
   const m = STATUS_META[status] || STATUS_META.draft;
   return (
     <span style={{
@@ -44,7 +49,7 @@ export function StatusBadge({ status }) {
       padding: "4px 10px", borderRadius: 999,
     }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: m.fg }} />
-      {m.label}
+      {t(m.label)}
     </span>
   );
 }
@@ -140,7 +145,8 @@ export function ErrorBanner({ message }) {
 }
 
 export function Loading({ label = "Loading..." }) {
-  return <div style={{ padding: 40, textAlign: "center", color: T.ink600, fontSize: 13.5 }}>{label}</div>;
+  const { t } = useLang();
+  return <div style={{ padding: 40, textAlign: "center", color: T.ink600, fontSize: 13.5 }}>{t(label)}</div>;
 }
 
 export function SectionCard({ title, right, children }) {
@@ -151,6 +157,38 @@ export function SectionCard({ title, right, children }) {
         {right}
       </div>
       {children}
+    </div>
+  );
+}
+
+// Compact EN/AR/FR pill switch — shown in the top bar and on the login screen
+// so a non-English speaker can switch before signing in. Uses two-letter codes
+// (no translation needed), so it stays the same in every language.
+export function LangSwitcher({ compact }) {
+  const { lang, setLang } = useLang();
+  return (
+    <div
+      style={{
+        display: "flex", alignItems: "center", gap: 2,
+        border: `1px solid ${T.line}`, borderRadius: 8, padding: "3px 4px", background: "#fff",
+      }}
+    >
+      {LANGUAGES.map((l) => (
+        <button
+          key={l.value}
+          onClick={() => setLang(l.value)}
+          title={l.label}
+          style={{
+            border: "none", borderRadius: 6, padding: "4px 7px",
+            background: lang === l.value ? T.navy900 : "transparent",
+            color: lang === l.value ? "#fff" : T.ink600,
+            fontSize: 11, fontWeight: 700, cursor: "pointer",
+            minWidth: compact ? 30 : 34,
+          }}
+        >
+          {l.value.toUpperCase()}
+        </button>
+      ))}
     </div>
   );
 }

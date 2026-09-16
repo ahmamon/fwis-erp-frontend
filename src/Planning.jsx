@@ -42,6 +42,17 @@ export default function Planning({ currentUser, persona }) {
     }
   }
 
+  async function duplicatePlan(p) {
+    setError("");
+    try {
+      const created = await api.post(`/api/plans/${p.id}/duplicate`);
+      reload();
+      setOpenId(created.id);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (error) return <div style={{ padding: 24 }}><ErrorBanner message={error} /></div>;
   if (!plans) return <Loading />;
 
@@ -68,23 +79,46 @@ export default function Planning({ currentUser, persona }) {
 
       <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, overflow: "hidden", background: "#fff" }}>
         {plans.length === 0 && <div style={{ padding: 30, textAlign: "center", color: T.ink600, fontSize: 13.5 }}>No plans yet.</div>}
-        {plans.map((p) => (
-          <button key={p.id} onClick={() => setOpenId(p.id)} style={{
-            width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "14px 18px", borderTop: `1px solid ${T.line}`, background: "#fff", textAlign: "left", cursor: "pointer",
-          }}>
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{p.teacher?.name}</div>
-              <div style={{ fontSize: 12, color: T.ink600 }}>{p.subject} · {p.grade} · {p.term}, {p.week}</div>
-              {p.dueDate && (
-                <div style={{ fontSize: 11.5, color: T.gold600, marginTop: 2 }}>
-                  Due {new Date(p.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                </div>
-              )}
+        {plans.map((p) => {
+          const isOwner = hasRole(currentUser, "teacher") && p.teacherId === currentUser.id;
+          return (
+            <div
+              key={p.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setOpenId(p.id)}
+              onKeyDown={(e) => { if (e.key === "Enter") setOpenId(p.id); }}
+              style={{
+                width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "14px 18px", borderTop: `1px solid ${T.line}`, background: "#fff",
+                textAlign: "left", cursor: "pointer",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{p.teacher?.name}</div>
+                <div style={{ fontSize: 12, color: T.ink600 }}>{p.subject} · {p.grade} · {p.term}, {p.week}</div>
+                {p.dueDate && (
+                  <div style={{ fontSize: 11.5, color: T.gold600, marginTop: 2 }}>
+                    Due {new Date(p.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <StatusBadge status={p.status} />
+                {isOwner && (
+                  <Button
+                    variant="outline"
+                    title="Start the next week by duplicating this plan"
+                    onClick={(e) => { e.stopPropagation(); duplicatePlan(p); }}
+                    style={{ padding: "5px 10px", fontSize: 12 }}
+                  >
+                    Copy
+                  </Button>
+                )}
+              </div>
             </div>
-            <StatusBadge status={p.status} />
-          </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -120,6 +154,14 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
     } finally {
       setExporting(false);
     }
+  }
+
+  async function duplicate() {
+    setError("");
+    try {
+      await api.post(`/api/plans/${plan.id}/duplicate`);
+      onBack(); // returns to the list, which reloads and shows the fresh copy
+    } catch (e) { setError(e.message); }
   }
 
   async function save() {
@@ -197,6 +239,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.line}` }}>
         <Button variant="outline" onClick={onExport} disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>
+        {isOwner && <Button variant="outline" onClick={duplicate} title="Start the next week from this plan">Duplicate</Button>}
         {canEdit && <Button variant="outline" onClick={save}>Save draft</Button>}
         {canEdit && <Button onClick={submit}>{plan.status === "returned" ? "Resubmit" : "Submit for review"}</Button>}
         {canReview && !showReturnBox && <Button variant="success" onClick={approve}>Approve</Button>}
