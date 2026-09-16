@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { T, Loading, ErrorBanner, SectionCard } from "./ui.jsx";
-import { useLang } from "./i18n.jsx";
+import { useLang, fmtDate } from "./i18n.jsx";
 
 function StatCard({ label, value, sublabel }) {
   return (
@@ -39,8 +39,8 @@ function RemindersCard({ items, onNavigate }) {
           title={`Open ${meta(r.kind).dest}`}
           style={{
             width: "100%", display: "flex", alignItems: "center", gap: 12,
-            padding: "10px 0", borderBottom: `1px solid ${T.line}`, borderLeft: "none",
-            borderRight: "none", borderTop: "none", background: "none",
+            padding: "10px 0", borderBottom: `1px solid ${T.line}`, borderInlineStart: "none",
+            borderInlineEnd: "none", borderTop: "none", background: "none",
             textAlign: "start", cursor: "pointer", font: "inherit",
           }}
         >
@@ -67,7 +67,7 @@ function AnnouncementsCard({ notes }) {
         <div key={n.id} style={{ padding: "10px 0", borderBottom: `1px solid ${T.line}` }}>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{n.text}</div>
           <div style={{ fontSize: 12, color: T.ink600 }}>
-            {n.authorName} · {new Date(n.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            {n.authorName} · {fmtDate(n.createdAt)}
           </div>
         </div>
       ))}

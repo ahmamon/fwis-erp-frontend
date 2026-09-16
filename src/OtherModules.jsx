@@ -27,7 +27,7 @@ export function ProfileView({ currentUser, onUpdated }) {
         <button onClick={save} style={{ border: "none", background: T.navy900, color: "#fff", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           Save
         </button>
-        {saved && <span style={{ marginLeft: 10, color: "#33622D", fontSize: 12.5, fontWeight: 600 }}>Saved</span>}
+        {saved && <span style={{ marginInlineStart: 10, color: "#33622D", fontSize: 12.5, fontWeight: 600 }}>Saved</span>}
       </div>
     </div>
   );

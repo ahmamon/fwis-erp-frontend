@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { T, StatusBadge, Loading, ErrorBanner, FieldLabel, TextField, Input, Button, SectionCard, hasRole } from "./ui.jsx";
 import { StrategyPicker, ResourceLibraryPicker } from "./modules/pickers.jsx";
-import { useLang } from "./i18n.jsx";
+import { useLang, fmtDate, fmtDateTime } from "./i18n.jsx";
 
 const FIELDS = [
   ["objectives", "Learning objectives"], ["topics", "Topics / content"], ["activities", "Activities"],
@@ -93,7 +93,7 @@ export default function Planning({ currentUser, persona }) {
               style={{
                 width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "14px 18px", borderTop: `1px solid ${T.line}`, background: "#fff",
-                textAlign: "left", cursor: "pointer",
+                textAlign: "start", cursor: "pointer",
               }}
             >
               <div>
@@ -101,7 +101,7 @@ export default function Planning({ currentUser, persona }) {
                 <div style={{ fontSize: 12, color: T.ink600 }}>{p.subject} · {p.grade} · {p.term}, {p.week}</div>
                 {p.dueDate && (
                   <div style={{ fontSize: 11.5, color: T.gold600, marginTop: 2 }}>
-                    {t("Due")} {new Date(p.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {t("Due")} {fmtDate(p.dueDate)}
                   </div>
                 )}
               </div>
@@ -211,7 +211,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
         <StatusBadge status={plan.status} />
         {plan.dueDate && (
           <span style={{ fontSize: 12.5, color: T.gold600, fontWeight: 600 }}>
-            {t("Due")} {new Date(plan.dueDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            {t("Due")} {fmtDate(plan.dueDate, { weekday: "short", month: "short", day: "numeric" })}
           </span>
         )}
       </div>
@@ -278,7 +278,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
           <SectionCard title={t("Audit trail")}>
             {plan.auditLogs.map((a) => (
               <div key={a.id} style={{ fontSize: 12.5, color: T.ink600, padding: "6px 0" }}>
-                <strong style={{ color: T.ink900 }}>{a.action}</strong> · {a.by?.name} · {new Date(a.at).toLocaleString()}
+                <strong style={{ color: T.ink900 }}>{a.action}</strong> · {a.by?.name} · {fmtDateTime(a.at)}
               </div>
             ))}
           </SectionCard>

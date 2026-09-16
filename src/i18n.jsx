@@ -24,10 +24,39 @@ function readStoredLang() {
   }
 }
 
-const I18nContext = createContext({ lang: "en", setLang: () => {}, t: (s) => s });
+const I18nContext = createContext({ lang: "en", setLang: () => {}, t: (s) => s, fmtDate: (v) => new Date(v).toLocaleDateString(), fmtDateTime: (v) => new Date(v).toLocaleString() });
+
+// Mirror of the committed language for non-component helpers (module-scope
+// date formatters such as the reports tables) that can't call useLang().
+// Overwritten during render so it always reflects the language the tree is
+// drawing.
+let currentLang = "en";
+export function getCurrentLang() {
+  return currentLang;
+}
+
+// Dates follow the app language, not the OS/browser locale — so a school that
+// switched the UI to Arabic sees Arabic calendar text everywhere. `opts`
+// matches Intl.DateTimeFormat options (pass e.g. { timeZone: "UTC" } to keep
+// stored day-granularity dates from shifting).
+export function fmtDate(value, opts) {
+  try {
+    return new Intl.DateTimeFormat(getCurrentLang() || "en", opts || { month: "short", day: "numeric" }).format(new Date(value));
+  } catch {
+    return new Date(value).toLocaleDateString("en-US", opts || { month: "short", day: "numeric" });
+  }
+}
+export function fmtDateTime(value) {
+  try {
+    return new Intl.DateTimeFormat(getCurrentLang() || "en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  } catch {
+    return new Date(value).toLocaleString();
+  }
+}
 
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(readStoredLang);
+  currentLang = lang; // sync the module mirror before children render
 
   // Mirror the chosen language into <html lang/dir> on mount and on change:
   // Arabic flips the whole document to RTL; screen readers get the right lang.
@@ -49,7 +78,7 @@ export function LanguageProvider({ children }) {
 
   const t = (key) => (DICTS[lang] && DICTS[lang][key]) || key;
 
-  const value = useMemo(() => ({ lang, setLang, t }), [lang]);
+  const value = useMemo(() => ({ lang, setLang, t, fmtDate, fmtDateTime }), [lang]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

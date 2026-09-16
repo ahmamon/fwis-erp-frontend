@@ -31,12 +31,28 @@ export function setActiveRole(role) {
 function authHeaders() {
   const activeRole = getActiveRole();
   const personaHeader = activeRole ? { "x-active-role": activeRole } : {};
+  // The app's selected language (localStorage["fwis_lang"], kept in sync by
+  // src/i18n.jsx) rides on every request so backend-sent strings — reminder
+  // lines, error messages, PDF documents — can localize server-side via the
+  // x-lang header. Falls back to English when unset.
+  const langHeaderVal = (() => {
+    try {
+      const lang = localStorage.getItem("fwis_lang");
+      return lang === "ar" || lang === "fr" ? { "x-lang": lang } : {};
+    } catch {
+      return {};
+    }
+  })();
   if (isAzureEnabled()) {
     const token = getAuthToken();
-    return token ? { Authorization: `Bearer ${token}`, ...personaHeader } : personaHeader;
+    return token
+      ? { Authorization: `Bearer ${token}`, ...personaHeader, ...langHeaderVal }
+      : { ...personaHeader, ...langHeaderVal };
   }
   const email = localStorage.getItem("fwis_dev_email");
-  return email ? { "x-dev-email": email, ...personaHeader } : personaHeader;
+  return email
+    ? { "x-dev-email": email, ...personaHeader, ...langHeaderVal }
+    : { ...personaHeader, ...langHeaderVal };
 }
 
 async function request(path, options = {}) {

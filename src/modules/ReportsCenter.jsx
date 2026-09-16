@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLang } from "../i18n.jsx";
+import { useLang, fmtDate } from "../i18n.jsx";
 import { api } from "../api";
 import { T, Select, StatusBadge, ErrorBanner, Loading, SectionCard } from "../ui";
 
@@ -24,7 +24,7 @@ function ReportTable({ columns, rows, empty = "No data yet." }) {
               <th
                 key={c.key}
                 style={{
-                  textAlign: c.align || "left",
+                  textAlign: c.align || "start",
                   fontSize: 11.5, fontWeight: 700, color: T.ink600,
                   textTransform: "uppercase", letterSpacing: 0.6,
                   padding: "8px 12px", borderBottom: `2px solid ${T.line}`, whiteSpace: "nowrap",
@@ -50,7 +50,7 @@ function ReportTable({ columns, rows, empty = "No data yet." }) {
                   key={c.key}
                   style={{
                     padding: "9px 12px", borderBottom: `1px solid ${T.line}`, color: T.ink900,
-                    textAlign: c.align || "left", whiteSpace: c.nowrap ? "nowrap" : undefined,
+                    textAlign: c.align || "start", whiteSpace: c.nowrap ? "nowrap" : undefined,
                   }}
                 >
                   {c.render ? c.render(row) : (row[c.key] ?? "—")}
@@ -71,7 +71,7 @@ function Progress({ rate }) {
       <div style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(198,161,91,0.2)", overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: T.gold500, borderRadius: 3 }} />
       </div>
-      <span style={{ fontSize: 12, fontWeight: 600, color: T.ink900, width: 42, textAlign: "right" }}>{pct}%</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: T.ink900, width: 42, textAlign: "end" }}>{pct}%</span>
     </div>
   );
 }
@@ -93,16 +93,14 @@ function OverdueBadge({ overdue }) {
   return <span style={{ fontSize: 12, fontWeight: 600, color: "#33622D" }}>{t("On track")}</span>;
 }
 
-const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-
 // Report definitions — columns shared by the table render for each tab.
 const REPORTS = {
   plans: {
     columns: [
       { key: "group", label: "Group" },
-      { key: "total", label: "Plans", align: "right" },
-      { key: "approved", label: "Approved", align: "right" },
-      { key: "pending", label: "Pending", align: "right" },
+      { key: "total", label: "Plans", align: "end" },
+      { key: "approved", label: "Approved", align: "end" },
+      { key: "pending", label: "Pending", align: "end" },
       { key: "rate", label: "Completion", render: (r) => <Progress rate={r.rate} /> },
     ],
   },
@@ -121,8 +119,8 @@ const REPORTS = {
     columns: [
       { key: "name", label: "Teacher" },
       { key: "department", label: "Department" },
-      { key: "target", label: "Target (hrs)", align: "right" },
-      { key: "completed", label: "Completed (hrs)", align: "right" },
+      { key: "target", label: "Target (hrs)", align: "end" },
+      { key: "completed", label: "Completed (hrs)", align: "end" },
       { key: "rate", label: "Progress", render: (r) => <Progress rate={r.rate} /> },
     ],
   },
@@ -130,10 +128,10 @@ const REPORTS = {
     note: "Average planned vs. achieved completion across units; a negative gap means coverage is behind plan.",
     columns: [
       { key: "group", label: "Group" },
-      { key: "units", label: "Units", align: "right" },
-      { key: "planned", label: "Planned %", align: "right" },
-      { key: "achieved", label: "Achieved %", align: "right" },
-      { key: "gap", label: "Gap", align: "right", render: (r) => {
+      { key: "units", label: "Units", align: "end" },
+      { key: "planned", label: "Planned %", align: "end" },
+      { key: "achieved", label: "Achieved %", align: "end" },
+      { key: "gap", label: "Gap", align: "end", render: (r) => {
         const color = r.gap < 0 ? T.copper500 : r.gap > 0 ? "#33622D" : T.ink600;
         return <span style={{ color, fontWeight: 600 }}>{r.gap > 0 && "+"}{r.gap}%</span>;
       } },

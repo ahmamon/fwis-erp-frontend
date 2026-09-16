@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLang } from "../i18n.jsx";
+import { useLang, fmtDate } from "../i18n.jsx";
 import { api } from "../api";
 import { T, FieldLabel, Input, Select, Button, SectionCard, ErrorBanner, Loading, hasRole } from "../ui";
 
@@ -198,7 +198,7 @@ export default function Calendar({ currentUser }) {
         />
         <Button variant="outline" onClick={() => setMonth((m) => addMonths(m, 1))}>→</Button>
         <Button variant="outline" onClick={() => setMonth(today.slice(0, 7))}>{t("Today")}</Button>
-        <div style={{ display: "flex", gap: 12, marginLeft: 8 }}>
+        <div style={{ display: "flex", gap: 12, marginInlineStart: 8 }}>
           {TYPE_OPTIONS.map((o) => (
             <span key={o.value} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: T.ink600 }}>
               <span style={{ width: 9, height: 9, borderRadius: "50%", background: TYPE_META[o.value].color }} />
@@ -226,7 +226,7 @@ export default function Calendar({ currentUser }) {
                 <div key={k} style={{
                   minHeight: 74, borderTop: `1px solid ${T.line}`, position: "relative",
                   background: dim ? T.cream50 : "#fff", padding: "5px 6px",
-                  borderRight: "none",
+                  borderInlineEnd: "none",
                 }}>
                   <div style={{
                     fontSize: 11.5, fontWeight: k === today ? 700 : 500,
@@ -243,7 +243,7 @@ export default function Calendar({ currentUser }) {
                           style={{
                             width: "100%", border: "none", borderRadius: 5, padding: "2px 5px",
                             background: m.bg, color: m.color, fontSize: 10.5, fontWeight: 600,
-                            textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            textAlign: "start", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                             cursor: admin ? "pointer" : "default", font: "inherit",
                           }}>
                           {ev.title}
@@ -251,7 +251,7 @@ export default function Calendar({ currentUser }) {
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <div style={{ fontSize: 9.5, color: T.ink600, paddingLeft: 5 }}>+{dayEvents.length - 3} {t("more")}</div>
+                      <div style={{ fontSize: 9.5, color: T.ink600, paddingInlineStart: 5 }}>+{dayEvents.length - 3} {t("more")}</div>
                     )}
                   </div>
                 </div>
@@ -279,7 +279,7 @@ export default function Calendar({ currentUser }) {
                       minWidth: 52, textAlign: "center", borderRadius: 8, padding: "5px 4px",
                       background: m.bg, color: m.color, fontSize: 11.5, fontWeight: 700,
                     }}>
-                      {new Date(`${on}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}
+                      {fmtDate(`${on}T00:00:00Z`, { month: "short", day: "numeric", timeZone: "UTC" })}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{ev.title}</div>

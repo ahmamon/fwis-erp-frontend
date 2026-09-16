@@ -266,8 +266,8 @@ export default function UsersEditor({ currentUser }) {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: T.navy900 }}>
                           {u.name}
-                          {isSelf && <span style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: T.gold600 }}>{t("YOU")}</span>}
-                          <span style={{ marginLeft: 8 }}><ActiveBadge active={u.active} /></span>
+                          {isSelf && <span style={{ marginInlineStart: 8, fontSize: 11.5, fontWeight: 700, color: T.gold600 }}>{t("YOU")}</span>}
+                          <span style={{ marginInlineStart: 8 }}><ActiveBadge active={u.active} /></span>
                         </div>
                         <div style={{ fontSize: 12.5, color: T.ink600 }}>{u.email}</div>
                         <div style={{ fontSize: 12, color: T.ink600 }}>

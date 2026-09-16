@@ -302,7 +302,7 @@ function ResourceRow({ resource, canManage, onChanged }) {
           <div style={{ fontWeight: 600, color: T.navy900 }}>
             {resource.name}
             {resource.externalUrl && (
-              <a href={resource.externalUrl} target="_blank" rel="noreferrer" style={{ color: T.gold600, marginLeft: 8, fontSize: 13, fontWeight: 600 }}>{t("Open ↗")}</a>
+              <a href={resource.externalUrl} target="_blank" rel="noreferrer" style={{ color: T.gold600, marginInlineStart: 8, fontSize: 13, fontWeight: 600 }}>{t("Open ↗")}</a>
             )}
           </div>
           <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 2 }}>
@@ -330,7 +330,7 @@ function ResourceRow({ resource, canManage, onChanged }) {
                 <span style={{ fontWeight: 600, color: T.ink500, width: 26, flexShrink: 0 }}>v{v.version}</span>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.fileName}</span>
                 {v.fileSize && <span style={{ color: T.ink600, flexShrink: 0 }}>{v.fileSize}</span>}
-                <Button onClick={() => openVersion(v)} variant="outline" style={{ padding: "3px 10px", fontSize: 12, marginLeft: "auto", flexShrink: 0 }}>{t("Open")}</Button>
+                <Button onClick={() => openVersion(v)} variant="outline" style={{ padding: "3px 10px", fontSize: 12, marginInlineStart: "auto", flexShrink: 0 }}>{t("Open")}</Button>
               </div>
             ))}
           </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { T, FieldLabel, Input, Select, Button, ErrorBanner, Loading, SectionCard, ROLE_OPTIONS, ROLE_LABELS } from "../ui";
-import { useLang } from "../i18n.jsx";
+import { useLang, fmtDate, fmtDateTime } from "../i18n.jsx";
 import UsersEditor from "./UsersEditor.jsx";
 
 // The Admin Control Panel — the single admin-only area that replaced Settings.
@@ -247,7 +247,7 @@ function AuditLogPanel() {
                 </div>
               </div>
               <div style={{ fontSize: 12, color: T.ink600, whiteSpace: "nowrap", flexShrink: 0 }}>
-                {new Date(r.at).toLocaleString()}
+                {fmtDateTime(r.at)}
               </div>
             </div>
           ))}
@@ -413,8 +413,8 @@ function NotesPanel() {
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: T.ink600, marginTop: 3 }}>
-                  {n.authorName} · {new Date(n.createdAt).toLocaleDateString()} · {audience(n)}
-                  {n.expiresAt ? ` · ${t("Expires")} ${new Date(n.expiresAt).toLocaleDateString()}` : ` · ${t("No expiry")}`}
+                  {n.authorName} · {fmtDate(n.createdAt, { year: "numeric", month: "numeric", day: "numeric" })} · {audience(n)}
+                  {n.expiresAt ? ` · ${t("Expires")} ${fmtDate(n.expiresAt, { year: "numeric", month: "numeric", day: "numeric" })}` : ` · ${t("No expiry")}`}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>

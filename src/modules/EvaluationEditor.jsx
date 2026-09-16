@@ -233,7 +233,7 @@ function EvaluationDetail({ id, onBack, onChanged, currentUser }) {
   return (
     <SectionCard title={`${t("Evaluation")} — ${evaluation.teacher?.name || ""}`} right={
       <>
-        <Button style={{ marginRight: 8 }} onClick={onExport} variant="outline" disabled={exporting}>{exporting ? t("Exporting…") : t("Export PDF")}</Button>
+        <Button style={{ marginInlineEnd: 8 }} onClick={onExport} variant="outline" disabled={exporting}>{exporting ? t("Exporting…") : t("Export PDF")}</Button>
         <Button onClick={onBack} variant="outline">{t("Back to list")}</Button>
       </>
     }>
