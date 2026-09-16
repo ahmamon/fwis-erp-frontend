@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, StatusBadge, Input, Select, hasRole } from "../ui";
 import { StrategyPicker, ResourceLibraryPicker } from "./pickers.jsx";
+import { useLang } from "../i18n.jsx";
 
 const CONTENT_FIELDS = [
   ["readingSelection", "Reading selection"],
@@ -27,6 +28,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function LessonsEditor({ currentUser }) {
+  const { t } = useLang();
   const [items, setItems] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [error, setError] = useState("");
@@ -67,7 +69,7 @@ export default function LessonsEditor({ currentUser }) {
   }
 
   if (!items) return <Loading />;
-  const title = "Lesson Preparation";
+  const title = t("Lesson Preparation");
   if (openId) {
     return <LessonDetail id={openId} onBack={() => setOpenId(null)} onChanged={load} currentUser={currentUser} />;
   }
@@ -77,12 +79,12 @@ export default function LessonsEditor({ currentUser }) {
       <SectionCard
         title={title}
         right={currentUser && hasRole(currentUser, "teacher") && (
-          <Button onClick={createDraft} disabled={creating}>{creating ? "Creating..." : "New draft"}</Button>
+          <Button onClick={createDraft} disabled={creating}>{creating ? t("Creating...") : t("New draft")}</Button>
         )}
       >
         <ErrorBanner message={error} />
         {items.length === 0 ? (
-          <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>No lessons yet.</div>
+          <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>{t("No lessons yet.")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {items.map((item) => (
@@ -96,7 +98,7 @@ export default function LessonsEditor({ currentUser }) {
                 }}>
                 <div>
                   <div style={{ fontWeight: 600, color: T.navy900 }}>
-                    {item.subject || "Lesson"} — {item.grade || ""}
+                    {item.subject || t("Lesson")} — {item.grade || ""}
                   </div>
                   <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 3 }}>
                     {item.department || "English"} · {item.academicYear || ""} · {item.term || ""} · {item.week || ""}
@@ -113,6 +115,7 @@ export default function LessonsEditor({ currentUser }) {
 }
 
 function LessonDetail({ id, onBack, onChanged, currentUser }) {
+  const { t } = useLang();
   const [lesson, setLesson] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -153,7 +156,7 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
   }
 
   async function remove() {
-    if (!window.confirm("Delete this lesson draft?")) return;
+    if (!window.confirm(t("Delete this lesson draft?"))) return;
     setDeleting(true);
     setError("");
     try {
@@ -185,7 +188,7 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
     const file = pdfRef.current?.files?.[0];
     if (!file) {
       setAiNote("");
-      setPdfNote("Choose a PDF to read first.");
+      setPdfNote(t("Choose a PDF to read first."));
       return;
     }
     setPdfBusy(true);
@@ -197,10 +200,10 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
       fd.append("pdf", file);
       const { fields } = await api.postForm(`/api/lessons/${id}/autofill`, fd);
       setForm((f) => ({ ...f, ...fields }));
-      setPdfNote("From your PDF — review the fields below before saving.");
+      setPdfNote(t("From your PDF — review the fields below before saving."));
     } catch (e) {
       if (e.code === "AI_NOT_CONFIGURED") {
-        setAiNote("AI isn't set up yet — add a free Gemini API key (no card required) to enable Fill from PDF.");
+        setAiNote(t("AI isn't set up yet — add a free Gemini API key (no card required) to enable Fill from PDF."));
       } else {
         setPdfNote(e.message);
       }
@@ -212,8 +215,8 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
   const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
 
   return (
-    <SectionCard title={lesson.subject || "Lesson"}
-      right={<Button onClick={onBack} variant="outline">Back to list</Button>}>
+    <SectionCard title={lesson.subject || t("Lesson")}
+      right={<Button onClick={onBack} variant="outline">{t("Back to list")}</Button>}>
       <ErrorBanner message={error} />
       {aiNote && (
         <div style={{ background: T.cream100, border: `1px solid ${T.gold500}`, borderRadius: 8, padding: "10px 14px", fontSize: 13.5, color: T.ink900, marginBottom: 14 }}>
@@ -223,18 +226,18 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <input type="file" ref={pdfRef} accept="application/pdf" style={{ fontSize: 12.5, color: T.ink600 }} />
         <Button onClick={onAutofill} variant="outline" disabled={pdfBusy} style={{ padding: "6px 14px" }}>
-          {pdfBusy ? "Reading…" : "Fill from PDF"}
+          {pdfBusy ? t("Reading…") : t("Fill from PDF")}
         </Button>
         {pdfNote && <span style={{ fontSize: 12.5, color: T.ink600 }}>{pdfNote}</span>}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
         <div>
-          <FieldLabel>Status</FieldLabel>
-          <Select value={form.status} onChange={set("status")} options={STATUS_OPTIONS} />
+          <FieldLabel>{t("Status")}</FieldLabel>
+          <Select value={form.status} onChange={set("status")} options={STATUS_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
         </div>
         {CONTENT_FIELDS.map(([key, label]) => (
           <div key={key}>
-            <FieldLabel>{label}</FieldLabel>
+            <FieldLabel>{t(label)}</FieldLabel>
             {key === "resources" && (
               <ResourceLibraryPicker value={form.resources} onChange={set("resources")} disabled={!isOwner} />
             )}
@@ -250,10 +253,10 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-        <Button onClick={onExport} variant="outline" disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>
-        <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+        <Button onClick={onExport} variant="outline" disabled={exporting}>{exporting ? t("Exporting…") : t("Export PDF")}</Button>
+        <Button onClick={save} disabled={saving}>{saving ? t("Saving...") : t("Save")}</Button>
         {isOwner && (
-          <Button onClick={remove} variant="danger" disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
+          <Button onClick={remove} variant="danger" disabled={deleting}>{deleting ? t("Deleting...") : t("Delete")}</Button>
         )}
       </div>
     </SectionCard>

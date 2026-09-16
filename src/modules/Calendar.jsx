@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLang } from "../i18n.jsx";
 import { api } from "../api";
 import { T, FieldLabel, Input, Select, Button, SectionCard, ErrorBanner, Loading, hasRole } from "../ui";
 
@@ -36,6 +37,7 @@ function gridDays(month) {
 const dayKey = (d) => d.toISOString().slice(0, 10);
 
 function CalendarForm({ initial, onSave, onCancel }) {
+  const { t } = useLang();
   const [form, setForm] = useState({
     title: initial.title || "",
     type: initial.type || "event",
@@ -70,59 +72,60 @@ function CalendarForm({ initial, onSave, onCancel }) {
       <ErrorBanner message={error} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel required>Title</FieldLabel>
-          <Input value={form.title} onChange={set("title")} placeholder="e.g. Term 1 English exam" />
+          <FieldLabel required>{t("Title")}</FieldLabel>
+          <Input value={form.title} onChange={set("title")} placeholder={t("e.g. Term 1 English exam")} />
         </div>
         <div>
-          <FieldLabel>Type</FieldLabel>
-          <Select value={form.type} onChange={set("type")} options={TYPE_OPTIONS} />
+          <FieldLabel>{t("Type")}</FieldLabel>
+          <Select value={form.type} onChange={set("type")} options={TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
         </div>
         <div>
-          <FieldLabel required>Date</FieldLabel>
+          <FieldLabel required>{t("Date")}</FieldLabel>
           <Input type="date" value={form.date} onChange={set("date")} />
         </div>
         <div>
-          <FieldLabel>Start time</FieldLabel>
+          <FieldLabel>{t("Start time")}</FieldLabel>
           <Input type="time" value={form.time} onChange={set("time")} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 26 }}>
           <input id="allDay" type="checkbox" checked={form.allDay} onChange={(e) => set("allDay")(e.target.checked)} />
-          <label htmlFor="allDay" style={{ fontSize: 13, color: T.ink900, cursor: "pointer" }}>All day</label>
+          <label htmlFor="allDay" style={{ fontSize: 13, color: T.ink900, cursor: "pointer" }}>{t("All day")}</label>
         </div>
         <div>
-          <FieldLabel>Grade</FieldLabel>
+          <FieldLabel>{t("Grade")}</FieldLabel>
           <Select
             value={form.grade}
             onChange={set("grade")}
-            options={[{ value: "", label: "— Whole school" }, ...grades.map((g) => ({ value: g.label, label: g.label }))]}
+            options={[{ value: "", label: t("— Whole school") }, ...grades.map((g) => ({ value: g.label, label: g.label }))]}
           />
         </div>
         <div>
-          <FieldLabel>Subject</FieldLabel>
+          <FieldLabel>{t("Subject")}</FieldLabel>
           <Select
             value={form.subject}
             onChange={set("subject")}
-            options={[{ value: "", label: "— All subjects" }, ...subjects.map((s) => ({ value: s.name, label: s.name }))]}
+            options={[{ value: "", label: t("— All subjects") }, ...subjects.map((s) => ({ value: s.name, label: s.name }))]}
           />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel>Location</FieldLabel>
-          <Input value={form.location} onChange={set("location")} placeholder="e.g. Hall A" />
+          <FieldLabel>{t("Location")}</FieldLabel>
+          <Input value={form.location} onChange={set("location")} placeholder={t("e.g. Hall A")} />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel>Description</FieldLabel>
-          <Input value={form.description} onChange={set("description")} placeholder="Optional notes for staff" />
+          <FieldLabel>{t("Description")}</FieldLabel>
+          <Input value={form.description} onChange={set("description")} placeholder={t("Optional notes for staff")} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-        <Button onClick={submit} disabled={saving}>{saving ? "Saving…" : initial.id ? "Save changes" : "Add event"}</Button>
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button onClick={submit} disabled={saving}>{saving ? t("Saving…") : initial.id ? t("Save changes") : t("Add event")}</Button>
+        <Button variant="outline" onClick={onCancel}>{t("Cancel")}</Button>
       </div>
     </div>
   );
 }
 
 export default function Calendar({ currentUser }) {
+  const { t } = useLang();
   const [month, setMonth] = useState(todayKey().slice(0, 7));
   const [events, setEvents] = useState(null);
   const [editing, setEditing] = useState(null); // null | { id?, ...defaults, grades, subjects }
@@ -162,7 +165,7 @@ export default function Calendar({ currentUser }) {
     load(month);
   }
   async function removeEvent(ev) {
-    if (!window.confirm(`Delete "${ev.title}"?`)) return;
+    if (!window.confirm(`${t("Delete")} "${ev.title}"?`)) return;
     try {
       await api.del(`/api/calendar/${ev.id}`);
       load(month);
@@ -174,9 +177,9 @@ export default function Calendar({ currentUser }) {
   return (
     <div style={{ padding: "24px 28px", maxWidth: 1000, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: 0 }}>School calendar</h1>
+        <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: 0 }}>{t("School calendar")}</h1>
         {admin && (
-          <Button onClick={() => setEditing({ id: null, ...lookups })}>+ Add event</Button>
+          <Button onClick={() => setEditing({ id: null, ...lookups })}>{t("+ Add event")}</Button>
         )}
       </div>
       <ErrorBanner message={error} />
@@ -194,12 +197,12 @@ export default function Calendar({ currentUser }) {
           style={{ border: `1px solid ${T.line}`, borderRadius: 8, padding: "7px 10px", fontSize: 13.5, color: T.ink900, background: "#fff" }}
         />
         <Button variant="outline" onClick={() => setMonth((m) => addMonths(m, 1))}>→</Button>
-        <Button variant="outline" onClick={() => setMonth(today.slice(0, 7))}>Today</Button>
+        <Button variant="outline" onClick={() => setMonth(today.slice(0, 7))}>{t("Today")}</Button>
         <div style={{ display: "flex", gap: 12, marginLeft: 8 }}>
           {TYPE_OPTIONS.map((o) => (
             <span key={o.value} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: T.ink600 }}>
               <span style={{ width: 9, height: 9, borderRadius: "50%", background: TYPE_META[o.value].color }} />
-              {o.label}
+              {t(o.label)}
             </span>
           ))}
         </div>
@@ -211,7 +214,7 @@ export default function Calendar({ currentUser }) {
         <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, overflow: "hidden", background: "#fff" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", background: T.navy900 }}>
             {WEEKDAYS.map((w) => (
-              <div key={w} style={{ padding: "7px 4px", textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: T.gold500 }}>{w}</div>
+              <div key={w} style={{ padding: "7px 4px", textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: T.gold500 }}>{t(w)}</div>
             ))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
@@ -248,7 +251,7 @@ export default function Calendar({ currentUser }) {
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <div style={{ fontSize: 9.5, color: T.ink600, paddingLeft: 5 }}>+{dayEvents.length - 3} more</div>
+                      <div style={{ fontSize: 9.5, color: T.ink600, paddingLeft: 5 }}>+{dayEvents.length - 3} {t("more")}</div>
                     )}
                   </div>
                 </div>
@@ -259,9 +262,9 @@ export default function Calendar({ currentUser }) {
       )}
 
       <div style={{ marginTop: 18 }}>
-        <SectionCard title={`Events — ${month}`}>
+        <SectionCard title={`${t("Events")} — ${month}`}>
           {!events || events.length === 0 ? (
-            <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>Nothing scheduled in this month.</p>
+            <p style={{ fontSize: 13, color: T.ink600, margin: 0 }}>{t("Nothing scheduled in this month.")}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {events.map((ev) => {
@@ -281,15 +284,15 @@ export default function Calendar({ currentUser }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink900 }}>{ev.title}</div>
                       <div style={{ fontSize: 12, color: T.ink600 }}>
-                        {m.label}{ev.time ? ` · ${ev.time}` : ""}
+                        {t(m.label)}{ev.time ? ` · ${ev.time}` : ""}
                         {ev.grade ? ` · ${ev.grade}` : ""}{ev.subject ? ` · ${ev.subject}` : ""}
                         {ev.location ? ` · ${ev.location}` : ""}
                       </div>
                     </div>
                     {admin && (
                       <div style={{ display: "flex", gap: 6 }}>
-                        <Button variant="outline" onClick={() => setEditing({ id: ev.id, ...ev, ...lookups })} style={{ padding: "5px 10px" }}>Edit</Button>
-                        <Button variant="danger" onClick={() => removeEvent(ev)} style={{ padding: "5px 10px" }}>Delete</Button>
+                        <Button variant="outline" onClick={() => setEditing({ id: ev.id, ...ev, ...lookups })} style={{ padding: "5px 10px" }}>{t("Edit")}</Button>
+                        <Button variant="danger" onClick={() => removeEvent(ev)} style={{ padding: "5px 10px" }}>{t("Delete")}</Button>
                       </div>
                     )}
                   </div>

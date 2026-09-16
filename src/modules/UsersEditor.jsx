@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLang } from "../i18n.jsx";
 import { api } from "../api";
 import { T, ROLE_OPTIONS, roleLabel, FieldLabel, Input, Select, TextField, Button, ErrorBanner, Loading, SectionCard } from "../ui";
 
@@ -6,6 +7,7 @@ import { T, ROLE_OPTIONS, roleLabel, FieldLabel, Input, Select, TextField, Butto
 // so no account is ever left without a role. Saves via PATCH /api/users/:id/roles
 // (the backend validates the list and guards against removing your own admin).
 function RolesPicker({ label = "Roles", value = [], onChange, disabled }) {
+  const { t } = useLang();
   const isOn = (r) => value.includes(r);
   const toggle = (r) => {
     if (isOn(r) && value.length === 1) return; // keep at least one role
@@ -13,7 +15,7 @@ function RolesPicker({ label = "Roles", value = [], onChange, disabled }) {
   };
   return (
     <div>
-      {label && <FieldLabel>{label}</FieldLabel>}
+      {label && <FieldLabel>{t(label)}</FieldLabel>}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {ROLE_OPTIONS.map((opt) => (
           <button
@@ -42,13 +44,14 @@ function RolesPicker({ label = "Roles", value = [], onChange, disabled }) {
 // clicking one chip selected ALL of them at once. Options and the selected
 // `value` list are compared by their `value` field only.
 function ChipSelector({ label, options, value = [], onChange, disabled }) {
+  const { t } = useLang();
   const isOn = (v) => value.includes(v);
   const toggle = (v) => onChange(isOn(v) ? value.filter((x) => x !== v) : [...value, v]);
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel>{t(label)}</FieldLabel>
       {options.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: T.ink600 }}>No options yet.</div>
+        <div style={{ fontSize: 12.5, color: T.ink600 }}>{t("No options yet.")}</div>
       ) : (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {options.map((opt) => {
@@ -76,7 +79,9 @@ function ChipSelector({ label, options, value = [], onChange, disabled }) {
   );
 }
 
-const ActiveBadge = ({ active }) => (
+const ActiveBadge = ({ active }) => {
+  const { t } = useLang();
+  return (
   <span style={{
     display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
     borderRadius: 999, padding: "3px 9px",
@@ -84,11 +89,13 @@ const ActiveBadge = ({ active }) => (
     ...(!active && { border: "1px solid #E4DFD1", color: "#5B5A52" }),
   }}>
     <span style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#33622D" : "#5B5A52" }} />
-    {active ? "Active" : "Deactivated"}
+    {active ? t("Active") : t("Deactivated")}
   </span>
-);
+  );
+};
 
 export default function UsersEditor({ currentUser }) {
+  const { t } = useLang();
   const [users, setUsers] = useState(null);
   const [branches, setBranches] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -150,7 +157,7 @@ export default function UsersEditor({ currentUser }) {
   });
 
   const removeUser = (u) => run(async () => {
-    if (!window.confirm(`Permanently delete ${u.name}? This only works if they have no plans, lessons, evaluations, or other records — otherwise, deactivate them instead.`)) return;
+    if (!window.confirm(`${t("Permanently delete")} ${u.name}? ${t("This only works if they have no plans, lessons, evaluations, or other records — otherwise, deactivate them instead.")}`)) return;
     await api.del(`/api/users/${u.id}`);
     await load();
   });
@@ -178,41 +185,41 @@ export default function UsersEditor({ currentUser }) {
 
   return (
     <div style={{ padding: "20px 28px 60px", maxWidth: 980, margin: "0 auto" }}>
-      <h1 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: T.navy900, margin: "0 0 18px" }}>Staff & Roles</h1>
+      <h1 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: T.navy900, margin: "0 0 18px" }}>{t("Staff & Roles")}</h1>
       <ErrorBanner message={error} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <SectionCard title="Add staff member">
+        <SectionCard title={t("Add staff member")}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ flex: "2 1 200px" }}>
-              <FieldLabel required>Full name</FieldLabel>
+              <FieldLabel required>{t("Full name")}</FieldLabel>
               <Input value={addForm.name} onChange={setAdd("name")} />
             </div>
             <div style={{ flex: "2 1 220px" }}>
-              <FieldLabel required>Email</FieldLabel>
+              <FieldLabel required>{t("Email")}</FieldLabel>
               <Input value={addForm.email} onChange={setAdd("email")} />
             </div>
             <div style={{ flex: "1 1 200px" }}>
               <RolesPicker value={addForm.roles} onChange={setAdd("roles")} />
             </div>
             <div style={{ flex: "1 1 160px" }}>
-              <FieldLabel>Department</FieldLabel>
+              <FieldLabel>{t("Department")}</FieldLabel>
               <Input value={addForm.department} onChange={setAdd("department")} />
             </div>
             <div style={{ flex: "1 1 160px" }}>
-              <FieldLabel>Branch</FieldLabel>
+              <FieldLabel>{t("Branch")}</FieldLabel>
               <Select value={addForm.branchId} onChange={setAdd("branchId")} options={branchOptions} placeholder="—" />
             </div>
-            <Button onClick={addUser} disabled={busy || !addForm.name.trim() || !addForm.email.trim()}>Add</Button>
+            <Button onClick={addUser} disabled={busy || !addForm.name.trim() || !addForm.email.trim()}>{t("Add")}</Button>
           </div>
           <div style={{ fontSize: 12, color: T.ink600, marginTop: 10 }}>
-            New accounts start active, so their first sign-in is accepted; pick grades/subjects when editing them.
+            {t("New accounts start active, so their first sign-in is accepted; pick grades/subjects when editing them.")}
           </div>
         </SectionCard>
 
-        <SectionCard title={`Staff (${users.length})`} right={busy ? <span style={{ fontSize: 12.5, color: T.ink600 }}>Saving…</span> : null}>
+        <SectionCard title={`${t("Staff")} (${users.length})`} right={busy ? <span style={{ fontSize: 12.5, color: T.ink600 }}>{t("Saving…")}</span> : null}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {users.length === 0 && <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>No staff yet.</div>}
+            {users.length === 0 && <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>{t("No staff yet.")}</div>}
             {users.map((u) => {
               const isSelf = u.id === currentUser.id;
               return (
@@ -221,19 +228,19 @@ export default function UsersEditor({ currentUser }) {
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <div style={{ flex: "2 1 200px" }}>
-                          <FieldLabel>Full name</FieldLabel>
+                          <FieldLabel>{t("Full name")}</FieldLabel>
                           <Input value={editDraft.name} onChange={setEdit("name")} />
                         </div>
                         <div style={{ flex: "1 1 180px" }}>
-                          <FieldLabel>Department</FieldLabel>
+                          <FieldLabel>{t("Department")}</FieldLabel>
                           <Input value={editDraft.department} onChange={setEdit("department")} />
                         </div>
                         <div style={{ flex: "1 1 180px" }}>
-                          <FieldLabel>Branch</FieldLabel>
+                          <FieldLabel>{t("Branch")}</FieldLabel>
                           <Select value={editDraft.branchId} onChange={setEdit("branchId")} options={branchOptions} placeholder="—" />
                         </div>
                         <div style={{ flex: "1 1 180px" }}>
-                          <FieldLabel>Phone</FieldLabel>
+                          <FieldLabel>{t("Phone")}</FieldLabel>
                           <Input value={editDraft.phone} onChange={setEdit("phone")} />
                         </div>
                       </div>
@@ -246,12 +253,12 @@ export default function UsersEditor({ currentUser }) {
                         </div>
                       </div>
                       <div>
-                        <FieldLabel>Bio</FieldLabel>
+                        <FieldLabel>{t("Bio")}</FieldLabel>
                         <TextField value={editDraft.bio} onChange={setEdit("bio")} rows={2} />
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <Button onClick={() => saveEdit(u)} disabled={busy}>Save changes</Button>
-                        <Button onClick={() => setEditId(null)} variant="outline">Cancel</Button>
+                        <Button onClick={() => saveEdit(u)} disabled={busy}>{t("Save changes")}</Button>
+                        <Button onClick={() => setEditId(null)} variant="outline">{t("Cancel")}</Button>
                       </div>
                     </div>
                   ) : (
@@ -259,7 +266,7 @@ export default function UsersEditor({ currentUser }) {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: T.navy900 }}>
                           {u.name}
-                          {isSelf && <span style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: T.gold600 }}>YOU</span>}
+                          {isSelf && <span style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: T.gold600 }}>{t("YOU")}</span>}
                           <span style={{ marginLeft: 8 }}><ActiveBadge active={u.active} /></span>
                         </div>
                         <div style={{ fontSize: 12.5, color: T.ink600 }}>{u.email}</div>
@@ -268,10 +275,10 @@ export default function UsersEditor({ currentUser }) {
                           {u.department ? ` · ${u.department}` : ""}
                           {u.branch?.name ? ` · ${u.branch.name}` : ""}
                           {(u.assignedGrades?.length
-                            ? ` · grades: ${u.assignedGrades.map((gid) => grades.find((g) => g.id === gid)?.label || gid).join(", ")}`
+                            ? ` · ${t("grades")}: ${u.assignedGrades.map((gid) => grades.find((g) => g.id === gid)?.label || gid).join(", ")}`
                             : "")}
                           {(u.assignedSubjects?.length
-                            ? ` · subjects: ${u.assignedSubjects.map((sid) => subjects.find((s) => s.id === sid)?.name || sid).join(", ")}`
+                            ? ` · ${t("subjects")}: ${u.assignedSubjects.map((sid) => subjects.find((s) => s.id === sid)?.name || sid).join(", ")}`
                             : "")}
                         </div>
                       </div>
@@ -281,12 +288,12 @@ export default function UsersEditor({ currentUser }) {
                         </div>
                         {!isSelf && (
                           <Button onClick={() => toggleActive(u)} variant="outline" style={{ padding: "6px 12px", whiteSpace: "nowrap" }} disabled={busy}>
-                            {u.active ? "Deactivate" : "Reactivate"}
+                            {u.active ? t("Deactivate") : t("Reactivate")}
                           </Button>
                         )}
-                        <Button onClick={() => startEdit(u)} variant="outline" style={{ padding: "6px 12px" }}>Edit</Button>
+                        <Button onClick={() => startEdit(u)} variant="outline" style={{ padding: "6px 12px" }}>{t("Edit")}</Button>
                         {!isSelf && (
-                          <Button onClick={() => removeUser(u)} variant="danger" style={{ padding: "6px 12px" }} disabled={busy}>Delete</Button>
+                          <Button onClick={() => removeUser(u)} variant="danger" style={{ padding: "6px 12px" }} disabled={busy}>{t("Delete")}</Button>
                         )}
                       </div>
                     </div>

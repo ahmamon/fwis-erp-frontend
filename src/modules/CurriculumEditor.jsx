@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, Select, hasRole } from "../ui";
+import { useLang } from "../i18n.jsx";
 
 const UNIT_FIELDS = [
   ["branchId", "Branch", "branch-select"],
@@ -31,6 +32,7 @@ const REMEDIAL_FIELDS = [
 const canManage = (user) => user && (hasRole(user, "hod") || hasRole(user, "supervisor"));
 
 export default function CurriculumEditor({ currentUser }) {
+  const { t } = useLang();
   const [items, setItems] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [showNew, setShowNew] = useState(false);
@@ -52,15 +54,15 @@ export default function CurriculumEditor({ currentUser }) {
   return (
     <div>
       <SectionCard
-        title="Curriculum Mapping"
+        title={t("Curriculum Mapping")}
         right={canManage(currentUser) && (
-          <Button onClick={() => setShowNew((s) => !s)}>{showNew ? "Cancel" : "New unit"}</Button>
+          <Button onClick={() => setShowNew((s) => !s)}>{showNew ? t("Cancel") : t("New unit")}</Button>
         )}
       >
         <ErrorBanner message={error} />
         {showNew && <UnitForm onDone={async () => { setShowNew(false); await load(); }} onCancel={() => setShowNew(false)} />}
         {items.length === 0 ? (
-          <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>No curriculum units yet.</div>
+          <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>{t("No curriculum units yet.")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {items.map((item) => (
@@ -73,13 +75,13 @@ export default function CurriculumEditor({ currentUser }) {
                   justifyContent: "space-between", alignItems: "center", gap: 12,
                 }}>
                 <div>
-                  <div style={{ fontWeight: 600, color: T.navy900 }}>{item.subject || "Unit"} — {item.unit}</div>
+                  <div style={{ fontWeight: 600, color: T.navy900 }}>{item.subject || t("Unit")} — {item.unit}</div>
                   <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 3 }}>
                     {item.grade || ""} · {item.term || ""} · {item.topic || ""}
                   </div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: T.navy700 }}>
-                  {item.plannedPct ?? 0}% planned / {item.achievedPct ?? 0}% achieved
+                  {item.plannedPct ?? 0}% {t("planned")} / {item.achievedPct ?? 0}% {t("achieved")}
                 </div>
               </div>
             ))}
@@ -91,6 +93,7 @@ export default function CurriculumEditor({ currentUser }) {
 }
 
 function UnitForm({ initial, onDone, onCancel }) {
+  const { t } = useLang();
   const [branches, setBranches] = useState([]);
   const [form, setForm] = useState(initial ? buildFromInitial(initial) : buildEmpty());
   const [saving, setSaving] = useState(false);
@@ -139,7 +142,7 @@ function UnitForm({ initial, onDone, onCancel }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {UNIT_FIELDS.map(([key, label, kind]) => (
           <div key={key} style={kind === "textarea" ? { gridColumn: "1 / -1" } : {}}>
-            <FieldLabel>{label}</FieldLabel>
+            <FieldLabel>{t(label)}</FieldLabel>
             {kind === "textarea"
               ? <TextField value={form[key]} onChange={set(key)} rows={3} />
               : kind === "branch-select"
@@ -149,7 +152,7 @@ function UnitForm({ initial, onDone, onCancel }) {
                     onChange={(e) => set("branchId")(e.target.value)}
                     style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 10, padding: "10px 12px", fontSize: 14.5, color: T.ink900, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}
                   >
-                    <option value="">Select a branch...</option>
+                    <option value="">{t("Select a branch...")}</option>
                     {branches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.code ? ` (${b.code})` : ""}</option>)}
                   </select>
                 )
@@ -158,14 +161,15 @@ function UnitForm({ initial, onDone, onCancel }) {
         ))}
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-        <Button onClick={save} disabled={saving}>{saving ? "Saving..." : (initial ? "Save changes" : "Create unit")}</Button>
-        <Button onClick={onCancel} variant="outline">Cancel</Button>
+        <Button onClick={save} disabled={saving}>{saving ? t("Saving...") : (initial ? t("Save changes") : t("Create unit"))}</Button>
+        <Button onClick={onCancel} variant="outline">{t("Cancel")}</Button>
       </div>
     </div>
   );
 }
 
 function UnitDetail({ id, onBack, onChanged, currentUser }) {
+  const { t } = useLang();
   const [unit, setUnit] = useState(null);
   const [editing, setEditing] = useState(false);
   const [showRemedial, setShowRemedial] = useState(false);
@@ -184,7 +188,7 @@ function UnitDetail({ id, onBack, onChanged, currentUser }) {
   if (!unit) return <Loading />;
 
   async function remove() {
-    if (!window.confirm("Delete this curriculum unit?")) return;
+    if (!window.confirm(t("Delete this curriculum unit?"))) return;
     setDeleting(true);
     setError("");
     try {
@@ -200,14 +204,14 @@ function UnitDetail({ id, onBack, onChanged, currentUser }) {
   const fieldRow = (label, value) => (
     value ? (
       <div>
-        <FieldLabel>{label}</FieldLabel>
+        <FieldLabel>{t(label)}</FieldLabel>
         <div style={{ fontSize: 14, color: T.ink900, whiteSpace: "pre-wrap", background: T.cream50, borderRadius: 8, padding: "8px 10px" }}>{value}</div>
       </div>
     ) : null
   );
 
   return (
-    <SectionCard title={`${unit.subject || "Unit"} — ${unit.unit}`} right={<Button onClick={onBack} variant="outline">Back to list</Button>}>
+    <SectionCard title={`${unit.subject || t("Unit")} — ${unit.unit}`} right={<Button onClick={onBack} variant="outline">{t("Back to list")}</Button>}>
       <ErrorBanner message={error} />
       {editing ? (
         <UnitForm initial={unit} onDone={async () => { setEditing(false); await loadUnit(); onChanged(); }} onCancel={() => setEditing(false)} />
@@ -223,27 +227,27 @@ function UnitDetail({ id, onBack, onChanged, currentUser }) {
           {fieldRow("Assessment", unit.assessment)}
           {fieldRow("Resources", unit.resources)}
           <div style={{ display: "flex", gap: 14, fontSize: 13.5 }}>
-            <span><strong style={{ color: T.navy900 }}>{unit.plannedPct ?? 0}%</strong> planned</span>
-            <span><strong style={{ color: T.navy900 }}>{unit.achievedPct ?? 0}%</strong> achieved</span>
+            <span><strong style={{ color: T.navy900 }}>{unit.plannedPct ?? 0}%</strong> {t("planned")}</span>
+            <span><strong style={{ color: T.navy900 }}>{unit.achievedPct ?? 0}%</strong> {t("achieved")}</span>
           </div>
         </div>
       )}
 
       {canManage(currentUser) && !editing && (
         <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-          <Button onClick={() => setEditing(true)}>Edit unit</Button>
-          <Button onClick={remove} variant="danger" disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
+          <Button onClick={() => setEditing(true)}>{t("Edit unit")}</Button>
+          <Button onClick={remove} variant="danger" disabled={deleting}>{deleting ? t("Deleting...") : t("Delete")}</Button>
         </div>
       )}
 
       <div style={{ marginTop: 22, borderTop: `1px solid ${T.line}`, paddingTop: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: T.navy900 }}>Remedial plans</div>
-          {canManage(currentUser) && <Button onClick={() => setShowRemedial((s) => !s)} variant="outline">{showRemedial ? "Cancel" : "Add remedial"}</Button>}
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.navy900 }}>{t("Remedial plans")}</div>
+          {canManage(currentUser) && <Button onClick={() => setShowRemedial((s) => !s)} variant="outline">{showRemedial ? t("Cancel") : t("Add remedial")}</Button>}
         </div>
         {showRemedial && <RemedialForm unitId={id} onDone={async () => { setShowRemedial(false); await loadUnit(); }} onCancel={() => setShowRemedial(false)} />}
         {unit.remedialPlan && unit.remedialPlan.length === 0 && (
-          <div style={{ color: T.ink600, fontSize: 13 }}>No remedial plans.</div>
+          <div style={{ color: T.ink600, fontSize: 13 }}>{t("No remedial plans.")}</div>
         )}
         {unit.remedialPlan && unit.remedialPlan.map((r) => (
           <RemedialRow key={r.id} remedial={r} unitId={id} onChanged={loadUnit} currentUser={currentUser} />
@@ -254,6 +258,7 @@ function UnitDetail({ id, onBack, onChanged, currentUser }) {
 }
 
 function RemedialForm({ unitId, onDone, onCancel }) {
+  const { t } = useLang();
   const [teachers, setTeachers] = useState([]);
   const [form, setForm] = useState(buildEmpty());
   const [saving, setSaving] = useState(false);
@@ -293,7 +298,7 @@ function RemedialForm({ unitId, onDone, onCancel }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {REMEDIAL_FIELDS.map(([key, label, kind]) => (
           <div key={key} style={kind === "textarea" ? { gridColumn: "1 / -1" } : {}}>
-            <FieldLabel>{label}</FieldLabel>
+            <FieldLabel>{t(label)}</FieldLabel>
             {kind === "textarea"
               ? <TextField value={form[key]} onChange={set(key)} rows={3} />
               : kind === "teacher-select"
@@ -303,7 +308,7 @@ function RemedialForm({ unitId, onDone, onCancel }) {
                     onChange={(e) => set("responsibleTeacherId")(e.target.value)}
                     style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 10, padding: "10px 12px", fontSize: 14.5, color: T.ink900, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}
                   >
-                    <option value="">Select a teacher...</option>
+                    <option value="">{t("Select a teacher...")}</option>
                     {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 )
@@ -312,14 +317,15 @@ function RemedialForm({ unitId, onDone, onCancel }) {
         ))}
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-        <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Create remedial"}</Button>
-        <Button onClick={onCancel} variant="outline">Cancel</Button>
+        <Button onClick={save} disabled={saving}>{saving ? t("Saving...") : t("Create remedial")}</Button>
+        <Button onClick={onCancel} variant="outline">{t("Cancel")}</Button>
       </div>
     </div>
   );
 }
 
 function RemedialRow({ remedial, unitId, onChanged, currentUser }) {
+  const { t } = useLang();
   const [status, setStatus] = useState(remedial.status || "open");
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
@@ -338,7 +344,7 @@ function RemedialRow({ remedial, unitId, onChanged, currentUser }) {
   }
 
   async function resolve() {
-    if (!window.confirm("Mark this remedial plan as resolved? The unit's achieved % will be set to its planned %.")) return;
+    if (!window.confirm(t("Mark this remedial plan as resolved? The unit's achieved % will be set to its planned %."))) return;
     setWorking(true);
     setError("");
     try {
@@ -354,18 +360,18 @@ function RemedialRow({ remedial, unitId, onChanged, currentUser }) {
   return (
     <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, padding: "12px 14px", marginBottom: 10, background: "#fff" }}>
       <ErrorBanner message={error} />
-      <div style={{ fontSize: 13, color: T.ink600, whiteSpace: "pre-wrap" }}>{remedial.missingTopics || "Remedial plan"}</div>
-      <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 4 }}>Status: {remedial.status}</div>
+      <div style={{ fontSize: 13, color: T.ink600, whiteSpace: "pre-wrap" }}>{remedial.missingTopics || t("Remedial plan")}</div>
+      <div style={{ fontSize: 12.5, color: T.ink600, marginTop: 4 }}>{t("Status")}: {remedial.status}</div>
       {canManage(currentUser) && (
         <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Select value={status} onChange={setStatus} options={[
-            { value: "open", label: "Open" },
-            { value: "scheduled", label: "Scheduled" },
-            { value: "in_progress", label: "In progress" },
-            { value: "resolved", label: "Resolved" },
+            { value: "open", label: t("Open") },
+            { value: "scheduled", label: t("Scheduled") },
+            { value: "in_progress", label: t("In progress") },
+            { value: "resolved", label: t("Resolved") },
           ]} />
-          <Button onClick={changeStatus} variant="outline" disabled={working}>{working ? "..." : "Update status"}</Button>
-          <Button onClick={resolve} variant="success" disabled={working || remedial.status === "resolved"}>Resolve</Button>
+          <Button onClick={changeStatus} variant="outline" disabled={working}>{working ? "..." : t("Update status")}</Button>
+          <Button onClick={resolve} variant="success" disabled={working || remedial.status === "resolved"}>{t("Resolve")}</Button>
         </div>
       )}
     </div>

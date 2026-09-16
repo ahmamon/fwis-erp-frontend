@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLang } from "../i18n.jsx";
 import { api } from "../api";
 import { T, Select, StatusBadge, ErrorBanner, Loading, SectionCard } from "../ui";
 
@@ -13,6 +14,7 @@ const TABS = [
 // render is absent the cell falls back to row[key]. Wide tables scroll inside
 // their own container so the page never scrolls sideways.
 function ReportTable({ columns, rows, empty = "No data yet." }) {
+  const { t } = useLang();
   return (
     <div style={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 520 }}>
@@ -28,7 +30,7 @@ function ReportTable({ columns, rows, empty = "No data yet." }) {
                   padding: "8px 12px", borderBottom: `2px solid ${T.line}`, whiteSpace: "nowrap",
                 }}
               >
-                {c.label}
+                {t(c.label)}
               </th>
             ))}
           </tr>
@@ -37,7 +39,7 @@ function ReportTable({ columns, rows, empty = "No data yet." }) {
           {rows.length === 0 && (
             <tr>
               <td colSpan={columns.length} style={{ padding: "18px 12px", color: T.ink600, textAlign: "center" }}>
-                {empty}
+                {t(empty)}
               </td>
             </tr>
           )}
@@ -75,6 +77,7 @@ function Progress({ rate }) {
 }
 
 function OverdueBadge({ overdue }) {
+  const { t } = useLang();
   if (overdue === null) return <span style={{ fontSize: 12, color: T.ink600 }}>—</span>;
   if (overdue) {
     return (
@@ -83,11 +86,11 @@ function OverdueBadge({ overdue }) {
         fontSize: 12, fontWeight: 600, borderRadius: 999, padding: "3px 9px",
       }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.copper500 }} />
-        Overdue
+        {t("Overdue")}
       </span>
     );
   }
-  return <span style={{ fontSize: 12, fontWeight: 600, color: "#33622D" }}>On track</span>;
+  return <span style={{ fontSize: 12, fontWeight: 600, color: "#33622D" }}>{t("On track")}</span>;
 }
 
 const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -139,6 +142,7 @@ const REPORTS = {
 };
 
 export default function ReportsCenter({ currentUser }) {
+  const { t } = useLang();
   const [tab, setTab] = useState("plans");
   const [data, setData] = useState({});
   const [error, setError] = useState("");
@@ -180,49 +184,49 @@ export default function ReportsCenter({ currentUser }) {
   const rows = response?.rows || [];
   const available = response?.available || [];
 
-  const weekOptions = [ { value: "", label: "All weeks" }, ...available.map((a) => ({ value: a.label, label: a.label })) ];
+  const weekOptions = [ { value: "", label: t("All weeks") }, ...available.map((a) => ({ value: a.label, label: a.label })) ];
 
   return (
     <div style={{ padding: "20px 28px 60px", maxWidth: 1000, margin: "0 auto" }}>
-      <h1 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: T.navy900, margin: "0 0 4px" }}>Report Center</h1>
+      <h1 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: T.navy900, margin: "0 0 4px" }}>{t("Report Center")}</h1>
       <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 16 }}>
-        Read-only views for HODs, supervisors and admins.
+        {t("Read-only views for HODs, supervisors and admins.")}
       </div>
       <ErrorBanner message={error} />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        {TABS.map((t) => (
+        {TABS.map((tabItem) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tabItem.id}
+            onClick={() => setTab(tabItem.id)}
             style={{
-              border: tab === t.id ? `1px solid ${T.gold600}` : `1px solid ${T.line}`,
-              background: tab === t.id ? "rgba(198,161,91,0.18)" : "#fff",
+              border: tab === tabItem.id ? `1px solid ${T.gold600}` : `1px solid ${T.line}`,
+              background: tab === tabItem.id ? "rgba(198,161,91,0.18)" : "#fff",
               color: T.ink900, borderRadius: 999, padding: "7px 14px", fontSize: 13,
-              fontWeight: tab === t.id ? 700 : 500, cursor: "pointer",
+              fontWeight: tab === tabItem.id ? 700 : 500, cursor: "pointer",
             }}
           >
-            {t.label}
+            {t(tabItem.label)}
           </button>
         ))}
       </div>
 
       {busy && !response ? <Loading /> : (
         <SectionCard
-          title={meta.label}
+          title={t(meta.label)}
           right={
             <>
               {tab === "plans" && (
                 <Select value={planGroup} onChange={setPlanGroup} options={[
-                  { value: "teacher", label: "By teacher" },
-                  { value: "department", label: "By department" },
-                  { value: "branch", label: "By branch" },
+                  { value: "teacher", label: t("By teacher") },
+                  { value: "department", label: t("By department") },
+                  { value: "branch", label: t("By branch") },
                 ]} />
               )}
               {tab === "coverage" && (
                 <Select value={coverageGroup} onChange={setCoverageGroup} options={[
-                  { value: "subject", label: "By subject" },
-                  { value: "grade", label: "By grade" },
+                  { value: "subject", label: t("By subject") },
+                  { value: "grade", label: t("By grade") },
                 ]} />
               )}
               {tab === "unapproved" && (
@@ -231,7 +235,7 @@ export default function ReportsCenter({ currentUser }) {
             </>
           }
         >
-          {rep.note && <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 12 }}>{rep.note}</div>}
+          {rep.note && <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 12 }}>{t(rep.note)}</div>}
           <ReportTable columns={rep.columns} rows={rows} />
         </SectionCard>
       )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api";
 import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, Input, hasRole } from "../ui";
+import { useLang } from "../i18n.jsx";
 
 const canManage = (user) => user && (hasRole(user, "admin") || hasRole(user, "supervisor"));
 
@@ -15,6 +16,7 @@ const CATEGORIES = [
 ];
 
 export default function StrategiesEditor({ currentUser }) {
+  const { t } = useLang();
   const [items, setItems] = useState(null);
   const [showNew, setShowNew] = useState(false);
   const [error, setError] = useState("");
@@ -34,13 +36,13 @@ export default function StrategiesEditor({ currentUser }) {
   return (
     <div>
       <SectionCard
-        title="Teaching Strategies"
-        right={canManage(currentUser) && <Button onClick={() => setShowNew((s) => !s)}>{showNew ? "Cancel" : "New strategy"}</Button>}
+        title={t("Teaching Strategies")}
+        right={canManage(currentUser) && <Button onClick={() => setShowNew((s) => !s)}>{showNew ? t("Cancel") : t("New strategy")}</Button>}
       >
         <ErrorBanner message={error} />
         {showNew && <StrategyForm onDone={async () => { setShowNew(false); await load(); }} onCancel={() => setShowNew(false)} />}
         {items.length === 0 ? (
-          <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>No strategies yet.</div>
+          <div style={{ color: T.ink600, fontSize: 13.5, padding: 8 }}>{t("No strategies yet.")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {items.map((item) => (
@@ -54,6 +56,7 @@ export default function StrategiesEditor({ currentUser }) {
 }
 
 function StrategyForm({ initial, onDone, onCancel }) {
+  const { t } = useLang();
   const [form, setForm] = useState(initial || { name: "", category: CATEGORIES[0], description: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -82,11 +85,11 @@ function StrategyForm({ initial, onDone, onCancel }) {
       <ErrorBanner message={error} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>
-          <FieldLabel required>Name</FieldLabel>
+          <FieldLabel required>{t("Name")}</FieldLabel>
           <Input value={form.name} onChange={set("name")} />
         </div>
         <div>
-          <FieldLabel>Category</FieldLabel>
+          <FieldLabel>{t("Category")}</FieldLabel>
           <select
             value={form.category}
             onChange={(e) => set("category")(e.target.value)}
@@ -96,25 +99,26 @@ function StrategyForm({ initial, onDone, onCancel }) {
           </select>
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
-          <FieldLabel>Description</FieldLabel>
+          <FieldLabel>{t("Description")}</FieldLabel>
           <TextField value={form.description} onChange={set("description")} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-        <Button onClick={save} disabled={saving || !form.name.trim()}>{saving ? "Saving..." : (initial ? "Save changes" : "Create")}</Button>
-        <Button onClick={onCancel} variant="outline">Cancel</Button>
+        <Button onClick={save} disabled={saving || !form.name.trim()}>{saving ? t("Saving...") : (initial ? t("Save changes") : t("Create"))}</Button>
+        <Button onClick={onCancel} variant="outline">{t("Cancel")}</Button>
       </div>
     </div>
   );
 }
 
 function StrategyRow({ strategy, canManage, onChanged }) {
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   async function remove() {
-    if (!window.confirm(`Delete "${strategy.name}"?`)) return;
+    if (!window.confirm(`${t("Delete")} "${strategy.name}"?`)) return;
     setDeleting(true);
     setError("");
     try {
@@ -143,8 +147,8 @@ function StrategyRow({ strategy, canManage, onChanged }) {
         </div>
         {canManage && (
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-            <Button onClick={() => setEditing(true)} variant="outline" style={{ padding: "6px 12px" }}>Edit</Button>
-            <Button onClick={remove} variant="danger" disabled={deleting} style={{ padding: "6px 12px" }}>{deleting ? "..." : "Delete"}</Button>
+            <Button onClick={() => setEditing(true)} variant="outline" style={{ padding: "6px 12px" }}>{t("Edit")}</Button>
+            <Button onClick={remove} variant="danger" disabled={deleting} style={{ padding: "6px 12px" }}>{deleting ? "..." : t("Delete")}</Button>
           </div>
         )}
       </div>

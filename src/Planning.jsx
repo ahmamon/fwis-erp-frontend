@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { T, StatusBadge, Loading, ErrorBanner, FieldLabel, TextField, Input, Button, SectionCard, hasRole } from "./ui.jsx";
 import { StrategyPicker, ResourceLibraryPicker } from "./modules/pickers.jsx";
+import { useLang } from "./i18n.jsx";
 
 const FIELDS = [
   ["objectives", "Learning objectives"], ["topics", "Topics / content"], ["activities", "Activities"],
@@ -10,6 +11,7 @@ const FIELDS = [
 ];
 
 export default function Planning({ currentUser, persona }) {
+  const { t } = useLang();
   const [plans, setPlans] = useState(null);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -63,22 +65,22 @@ export default function Planning({ currentUser, persona }) {
   return (
     <div style={{ padding: "24px 28px", maxWidth: 1100, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
-        <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: 0 }}>Weekly plans</h1>
-        {hasRole(currentUser, "teacher") && !showCreate && <Button onClick={() => { setShowCreate(true); setDueDate(""); }}>+ New weekly plan</Button>}
+        <h1 style={{ fontFamily: "Georgia, serif", fontSize: 22, color: T.navy900, margin: 0 }}>{t("Weekly plans")}</h1>
+        {hasRole(currentUser, "teacher") && !showCreate && <Button onClick={() => { setShowCreate(true); setDueDate(""); }}>{t("+ New weekly plan")}</Button>}
         {hasRole(currentUser, "teacher") && showCreate && (
           <div style={{ display: "flex", alignItems: "flex-end", gap: 8, flexWrap: "wrap" }}>
             <div>
-              <FieldLabel>Due date (optional)</FieldLabel>
+              <FieldLabel>{t("Due date (optional)")}</FieldLabel>
               <Input type="date" value={dueDate} onChange={setDueDate} />
             </div>
-            <Button onClick={createDraft}>Create draft</Button>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={createDraft}>{t("Create draft")}</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>{t("Cancel")}</Button>
           </div>
         )}
       </div>
 
       <div style={{ border: `1px solid ${T.line}`, borderRadius: 12, overflow: "hidden", background: "#fff" }}>
-        {plans.length === 0 && <div style={{ padding: 30, textAlign: "center", color: T.ink600, fontSize: 13.5 }}>No plans yet.</div>}
+        {plans.length === 0 && <div style={{ padding: 30, textAlign: "center", color: T.ink600, fontSize: 13.5 }}>{t("No plans yet.")}</div>}
         {plans.map((p) => {
           const isOwner = hasRole(currentUser, "teacher") && p.teacherId === currentUser.id;
           return (
@@ -99,7 +101,7 @@ export default function Planning({ currentUser, persona }) {
                 <div style={{ fontSize: 12, color: T.ink600 }}>{p.subject} · {p.grade} · {p.term}, {p.week}</div>
                 {p.dueDate && (
                   <div style={{ fontSize: 11.5, color: T.gold600, marginTop: 2 }}>
-                    Due {new Date(p.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {t("Due")} {new Date(p.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   </div>
                 )}
               </div>
@@ -108,11 +110,11 @@ export default function Planning({ currentUser, persona }) {
                 {isOwner && (
                   <Button
                     variant="outline"
-                    title="Start the next week by duplicating this plan"
+                    title={t("Start the next week by duplicating this plan")}
                     onClick={(e) => { e.stopPropagation(); duplicatePlan(p); }}
                     style={{ padding: "5px 10px", fontSize: 12 }}
                   >
-                    Copy
+                    {t("Copy")}
                   </Button>
                 )}
               </div>
@@ -129,6 +131,7 @@ function slug(text) {
 }
 
 function PlanDetail({ id, currentUser, persona, onBack }) {
+  const { t } = useLang();
   const [plan, setPlan] = useState(null);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -199,7 +202,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
   return (
     <div style={{ padding: "20px 28px 60px", maxWidth: 900, margin: "0 auto" }}>
       <button onClick={onBack} style={{ border: "none", background: "transparent", color: T.ink600, fontSize: 13, cursor: "pointer", padding: 0, marginBottom: 16 }}>
-        ← Back to all plans
+        {t("← Back to all plans")}
       </button>
       <ErrorBanner message={error} />
 
@@ -208,14 +211,14 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
         <StatusBadge status={plan.status} />
         {plan.dueDate && (
           <span style={{ fontSize: 12.5, color: T.gold600, fontWeight: 600 }}>
-            Due {new Date(plan.dueDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            {t("Due")} {new Date(plan.dueDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
           </span>
         )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ maxWidth: 260 }}>
-          <FieldLabel>Due date {canEdit ? "(optional)" : ""}</FieldLabel>
+          <FieldLabel>{t("Due date")} {canEdit ? t("(optional)") : ""}</FieldLabel>
           <Input
             type="date"
             value={dateValue(plan.dueDate)}
@@ -225,7 +228,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
         </div>
         {FIELDS.map(([key, label]) => (
           <div key={key}>
-            <FieldLabel>{label}</FieldLabel>
+            <FieldLabel>{t(label)}</FieldLabel>
             {key === "resources" && (
               <ResourceLibraryPicker value={plan.resources} onChange={(v) => setPlan({ ...plan, resources: v })} disabled={!canEdit} />
             )}
@@ -238,28 +241,28 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.line}` }}>
-        <Button variant="outline" onClick={onExport} disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>
-        {isOwner && <Button variant="outline" onClick={duplicate} title="Start the next week from this plan">Duplicate</Button>}
-        {canEdit && <Button variant="outline" onClick={save}>Save draft</Button>}
-        {canEdit && <Button onClick={submit}>{plan.status === "returned" ? "Resubmit" : "Submit for review"}</Button>}
-        {canReview && !showReturnBox && <Button variant="success" onClick={approve}>Approve</Button>}
-        {canReview && !showReturnBox && <Button variant="outline" onClick={() => setShowReturnBox(true)}>Return with comment</Button>}
+        <Button variant="outline" onClick={onExport} disabled={exporting}>{exporting ? t("Exporting…") : t("Export PDF")}</Button>
+        {isOwner && <Button variant="outline" onClick={duplicate} title={t("Start the next week from this plan")}>{t("Duplicate")}</Button>}
+        {canEdit && <Button variant="outline" onClick={save}>{t("Save draft")}</Button>}
+        {canEdit && <Button onClick={submit}>{plan.status === "returned" ? t("Resubmit") : t("Submit for review")}</Button>}
+        {canReview && !showReturnBox && <Button variant="success" onClick={approve}>{t("Approve")}</Button>}
+        {canReview && !showReturnBox && <Button variant="outline" onClick={() => setShowReturnBox(true)}>{t("Return with comment")}</Button>}
       </div>
 
       {showReturnBox && (
         <div style={{ marginTop: 14, border: `1px solid ${T.line}`, borderRadius: 12, padding: 16, background: T.cream100 }}>
-          <FieldLabel required>Comment for the teacher</FieldLabel>
+          <FieldLabel required>{t("Comment for the teacher")}</FieldLabel>
           <TextField value={returnNote} onChange={setReturnNote} rows={3} />
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <Button variant="danger" onClick={returnPlan}>Send back</Button>
-            <Button variant="outline" onClick={() => setShowReturnBox(false)}>Cancel</Button>
+            <Button variant="danger" onClick={returnPlan}>{t("Send back")}</Button>
+            <Button variant="outline" onClick={() => setShowReturnBox(false)}>{t("Cancel")}</Button>
           </div>
         </div>
       )}
 
       {plan.comments?.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <SectionCard title="Comments">
+          <SectionCard title={t("Comments")}>
             {plan.comments.map((c) => (
               <div key={c.id} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: `1px solid ${T.line}` }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600 }}>{c.author?.name}</div>
@@ -272,7 +275,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
 
       {plan.auditLogs?.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <SectionCard title="Audit trail">
+          <SectionCard title={t("Audit trail")}>
             {plan.auditLogs.map((a) => (
               <div key={a.id} style={{ fontSize: 12.5, color: T.ink600, padding: "6px 0" }}>
                 <strong style={{ color: T.ink900 }}>{a.action}</strong> · {a.by?.name} · {new Date(a.at).toLocaleString()}

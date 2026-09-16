@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLang } from "../i18n.jsx";
 import { api } from "../api";
 import { T, FieldLabel, Input, Button } from "../ui";
 
@@ -11,6 +12,7 @@ import { T, FieldLabel, Input, Button } from "../ui";
 // library can be typed and added on the fly so teachers are never locked to
 // the current library (library management stays with admin/supervisor).
 export function StrategyPicker({ label = "Teaching strategies", value = [], onChange, disabled }) {
+  const { t } = useLang();
   const [library, setLibrary] = useState(null);
   const [custom, setCustom] = useState("");
 
@@ -37,14 +39,14 @@ export function StrategyPicker({ label = "Teaching strategies", value = [], onCh
 
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel>{t(label)}</FieldLabel>
       {!library ? (
-        <div style={{ fontSize: 12.5, color: T.ink600 }}>Loading strategies…</div>
+        <div style={{ fontSize: 12.5, color: T.ink600 }}>{t("Loading strategies…")}</div>
       ) : (
         <>
           {names.length === 0 ? (
             <div style={{ fontSize: 12.5, color: T.ink600, marginBottom: 6 }}>
-              No strategies yet — add one below, or an admin can build the library in Teaching Strategies.
+              {t("No strategies yet — add one below, or an admin can build the library in Teaching Strategies.")}
             </div>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
@@ -74,18 +76,18 @@ export function StrategyPicker({ label = "Teaching strategies", value = [], onCh
               <Input
                 value={custom}
                 onChange={setCustom}
-                placeholder="Add a strategy not in the list…"
+                placeholder={t("Add a strategy not in the list…")}
                 style={{ width: 240 }}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
               />
               <Button variant="outline" onClick={addCustom} disabled={!custom.trim() || value.includes(custom.trim())} style={{ padding: "6px 12px" }}>
-                Add
+                {t("Add")}
               </Button>
             </div>
           )}
           {value.length > 0 && (
             <div style={{ fontSize: 11.5, color: T.ink600, marginTop: 6 }}>
-              Chosen: {value.join(", ")}
+              {t("Chosen")}: {value.join(", ")}
             </div>
           )}
         </>
@@ -98,13 +100,14 @@ export function StrategyPicker({ label = "Teaching strategies", value = [], onCh
 // name to the parent free-text field, so the starting point is "choose from
 // what exists" and the teacher still edits the wording afterwards.
 export function ResourceLibraryPicker({ label = "Choose from the Resources library", value, onChange, disabled }) {
+  const { t } = useLang();
   const [library, setLibrary] = useState(null);
 
   useEffect(() => {
     api.get("/api/resources").then(setLibrary).catch(() => setLibrary([]));
   }, []);
 
-  if (!library) return <div style={{ fontSize: 12.5, color: T.ink600 }}>Loading resources…</div>;
+  if (!library) return <div style={{ fontSize: 12.5, color: T.ink600 }}>{t("Loading resources…")}</div>;
   const names = [...new Set(library.map((r) => r.name).filter(Boolean))];
   if (names.length === 0) return null;
 
@@ -119,7 +122,7 @@ export function ResourceLibraryPicker({ label = "Choose from the Resources libra
   return (
     <div style={{ marginBottom: 6 }}>
       <div style={{ fontSize: 11.5, fontWeight: 600, color: T.ink600, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>
-        {label}
+        {t(label)}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {names.map((name) => {
@@ -130,7 +133,7 @@ export function ResourceLibraryPicker({ label = "Choose from the Resources libra
               type="button"
               disabled={disabled}
               onClick={() => add(name)}
-              title={on ? "Already in the field" : "Add to the field"}
+              title={on ? t("Already in the field") : t("Add to the field")}
               style={{
                 border: on ? `1px dashed ${T.gold600}` : `1px solid ${T.line}`,
                 background: on ? "rgba(198,161,91,0.12)" : "#fff",
@@ -145,7 +148,7 @@ export function ResourceLibraryPicker({ label = "Choose from the Resources libra
         })}
       </div>
       <div style={{ fontSize: 11, color: T.ink600, marginTop: 5 }}>
-        Click a title to add it to the field below, then adjust the wording as needed.
+        {t("Click a title to add it to the field below, then adjust the wording as needed.")}
       </div>
     </div>
   );
