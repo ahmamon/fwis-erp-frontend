@@ -36,9 +36,14 @@ function RolesPicker({ label = "Roles", value = [], onChange, disabled }) {
   );
 }
 
+// Chip multi-select. Options arrive as { value, label } — `opt.value` is the
+// identity (id for grades/subjects, etc.). READING opt.id HERE WAS A BUG: the
+// callers' options have no `id`, so every chip shared opt.id === undefined and
+// clicking one chip selected ALL of them at once. Options and the selected
+// `value` list are compared by their `value` field only.
 function ChipSelector({ label, options, value = [], onChange, disabled }) {
-  const isOn = (id) => value.includes(id);
-  const toggle = (id) => onChange(isOn(id) ? value.filter((v) => v !== id) : [...value, id]);
+  const isOn = (v) => value.includes(v);
+  const toggle = (v) => onChange(isOn(v) ? value.filter((x) => x !== v) : [...value, v]);
   return (
     <div>
       <FieldLabel>{label}</FieldLabel>
@@ -46,22 +51,25 @@ function ChipSelector({ label, options, value = [], onChange, disabled }) {
         <div style={{ fontSize: 12.5, color: T.ink600 }}>No options yet.</div>
       ) : (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {options.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => toggle(opt.id)}
-              style={{
-                border: isOn(opt.id) ? `1px solid ${T.gold600}` : `1px solid ${T.line}`,
-                background: isOn(opt.id) ? "rgba(198,161,91,0.18)" : "#fff",
-                color: T.ink900, borderRadius: 999, padding: "5px 12px", fontSize: 12.5,
-                fontWeight: 600, cursor: disabled ? "default" : "pointer",
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+          {options.map((opt) => {
+            const id = opt.value;
+            return (
+              <button
+                key={id}
+                type="button"
+                disabled={disabled}
+                onClick={() => toggle(id)}
+                style={{
+                  border: isOn(id) ? `1px solid ${T.gold600}` : `1px solid ${T.line}`,
+                  background: isOn(id) ? "rgba(198,161,91,0.18)" : "#fff",
+                  color: T.ink900, borderRadius: 999, padding: "5px 12px", fontSize: 12.5,
+                  fontWeight: 600, cursor: disabled ? "default" : "pointer",
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -259,8 +267,12 @@ export default function UsersEditor({ currentUser }) {
                           {roleLabel(u)}
                           {u.department ? ` · ${u.department}` : ""}
                           {u.branch?.name ? ` · ${u.branch.name}` : ""}
-                          {(u.assignedGrades?.length ? ` · grades: ${u.assignedGrades.join(", ")}` : "")}
-                          {(u.assignedSubjects?.length ? ` · subjects: ${u.assignedSubjects.join(", ")}` : "")}
+                          {(u.assignedGrades?.length
+                            ? ` · grades: ${u.assignedGrades.map((gid) => grades.find((g) => g.id === gid)?.label || gid).join(", ")}`
+                            : "")}
+                          {(u.assignedSubjects?.length
+                            ? ` · subjects: ${u.assignedSubjects.map((sid) => subjects.find((s) => s.id === sid)?.name || sid).join(", ")}`
+                            : "")}
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
