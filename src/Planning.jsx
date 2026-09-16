@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
 import { T, StatusBadge, Loading, ErrorBanner, FieldLabel, TextField, Input, Button, SectionCard, hasRole } from "./ui.jsx";
+import { StrategyPicker, ResourceLibraryPicker } from "./modules/pickers.jsx";
 
 const FIELDS = [
   ["objectives", "Learning objectives"], ["topics", "Topics / content"], ["activities", "Activities"],
@@ -125,6 +126,7 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
     try {
       const data = {};
       FIELDS.forEach(([key]) => { data[key] = plan[key]; });
+      data.strategies = plan.strategies || [];
       data.dueDate = plan.dueDate || null;
       await api.patch(`/api/plans/${id}`, data);
       reload();
@@ -182,9 +184,15 @@ function PlanDetail({ id, currentUser, persona, onBack }) {
         {FIELDS.map(([key, label]) => (
           <div key={key}>
             <FieldLabel>{label}</FieldLabel>
+            {key === "resources" && (
+              <ResourceLibraryPicker value={plan.resources} onChange={(v) => setPlan({ ...plan, resources: v })} disabled={!canEdit} />
+            )}
             <TextField value={plan[key]} onChange={(v) => setPlan({ ...plan, [key]: v })} disabled={!canEdit} />
           </div>
         ))}
+        <div>
+          <StrategyPicker value={plan.strategies || []} onChange={(s) => setPlan({ ...plan, strategies: s })} disabled={!canEdit} />
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.line}` }}>

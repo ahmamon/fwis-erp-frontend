@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { api } from "../api";
 import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, StatusBadge, Input, Select, hasRole } from "../ui";
+import { StrategyPicker, ResourceLibraryPicker } from "./pickers.jsx";
 
 const CONTENT_FIELDS = [
   ["readingSelection", "Reading selection"],
@@ -129,6 +130,7 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
       const f = {};
       for (const [key] of CONTENT_FIELDS) f[key] = data[key] || "";
       f.status = data.status || "draft";
+      f.strategies = data.strategies || [];
       setForm(f);
     }).catch((e) => setError(e.message));
   }, [id]);
@@ -233,9 +235,19 @@ function LessonDetail({ id, onBack, onChanged, currentUser }) {
         {CONTENT_FIELDS.map(([key, label]) => (
           <div key={key}>
             <FieldLabel>{label}</FieldLabel>
+            {key === "resources" && (
+              <ResourceLibraryPicker value={form.resources} onChange={set("resources")} disabled={!isOwner} />
+            )}
             <TextField value={form[key]} onChange={set(key)} rows={key === "objectives" || key === "assessment" ? 4 : 3} />
           </div>
         ))}
+        <div>
+          <StrategyPicker
+            value={form.strategies || []}
+            onChange={(s) => setForm((f) => ({ ...f, strategies: s }))}
+            disabled={!isOwner}
+          />
+        </div>
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
         <Button onClick={onExport} variant="outline" disabled={exporting}>{exporting ? "Exporting…" : "Export PDF"}</Button>

@@ -60,7 +60,7 @@ export function FieldLabel({ children, required }) {
   );
 }
 
-export function TextField({ value, onChange, placeholder, rows = 3, disabled }) {
+export function TextField({ value, onChange, placeholder, rows = 3, disabled, ...rest }) {
   return (
     <textarea
       value={value || ""}
@@ -74,6 +74,7 @@ export function TextField({ value, onChange, placeholder, rows = 3, disabled }) 
         background: disabled ? T.cream100 : "#fff", resize: "vertical", lineHeight: 1.5,
         boxSizing: "border-box",
       }}
+      {...rest}
     />
   );
 }
@@ -84,11 +85,11 @@ const inputBase = {
   background: "#fff", boxSizing: "border-box",
 };
 
-export function Input({ value, onChange, placeholder, type = "text", disabled }) {
+export function Input({ value, onChange, placeholder, type = "text", disabled, ...rest }) {
   const style = { ...inputBase, background: disabled ? T.cream100 : "#fff", opacity: disabled ? 0.7 : 1 };
   const merged = type ? { ...style, type } : style;
   return (
-    <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={merged} />
+    <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={merged} {...rest} />
   );
 }
 
