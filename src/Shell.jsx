@@ -8,10 +8,12 @@ const NAV = [
   { id: "reports", label: "Report Center", roles: ["hod", "supervisor", "admin"] },
   { id: "profile", label: "My Profile" },
   { id: "planning", label: "Weekly Planning" },
-  { id: "lessons", label: "Lesson Preparation" },
+  { id: "timetables", label: "Teacher Timetables", roles: ["teacher", "admin"] },
+  { id: "lessonPlans", label: "90-Min Lesson Plans" },
   { id: "curriculum", label: "Curriculum Mapping" },
   { id: "strategies", label: "Teaching Strategies" },
   { id: "resources", label: "Resources" },
+  { id: "studentPerformance", label: "Student Performance", roles: ["teacher", "admin"] },
   { id: "pd", label: "Professional Development" },
   { id: "evaluation", label: "Teacher Evaluation" },
   { id: "admin", label: "Admin Control Panel", roles: ["admin"] },
@@ -282,7 +284,9 @@ export function TopBar({ currentUser, onSignOut, title, onToggleSidebar, activeR
 
 export const MODULE_TITLES = {
   dashboard: "Dashboard", calendar: "School Calendar", reports: "Report Center", profile: "My Profile", planning: "Weekly Planning",
-  lessons: "Lesson Preparation", curriculum: "Curriculum Mapping", strategies: "Teaching Strategies",
+  timetables: "Teacher Timetables",
+  lessonPlans: "90-Minute Lesson Plans", curriculum: "Curriculum Mapping", strategies: "Teaching Strategies",
   resources: "Resources", pd: "Professional Development", evaluation: "Teacher Evaluation",
+  studentPerformance: "Student Performance",
   admin: "Admin Control Panel",
 };

@@ -45,6 +45,7 @@ function CalendarForm({ initial, onSave, onCancel }) {
     time: initial.time || "",
     allDay: initial.allDay !== false,
     grade: initial.grade || "",
+    classSection: initial.classSection || "",
     subject: initial.subject || "",
     location: initial.location || "",
     description: initial.description || "",
@@ -106,6 +107,10 @@ function CalendarForm({ initial, onSave, onCancel }) {
             onChange={set("subject")}
             options={[{ value: "", label: t("— All subjects") }, ...subjects.map((s) => ({ value: s.name, label: s.name }))]}
           />
+        </div>
+        <div>
+          <FieldLabel>{t("Class / section")}</FieldLabel>
+          <Input value={form.classSection} onChange={set("classSection")} placeholder={t("Blank means every class")} />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
           <FieldLabel>{t("Location")}</FieldLabel>

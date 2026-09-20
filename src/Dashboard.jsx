@@ -22,6 +22,7 @@ const REMINDER_META = {
   hod_approval: { color: "#5C3A82", dest: "planning" },
   supervisor_approval: { color: "#33622D", dest: "planning" },
   event: { color: "#2A5D8F", dest: "calendar" },
+  duty_request: { color: T.gold600, dest: "timetables" },
 };
 
 function RemindersCard({ items, onNavigate }) {

@@ -58,11 +58,14 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
     (u) => !query.trim() || `${u.name} ${u.email}`.toLowerCase().includes(query.toLowerCase())
   );
 
-  function choose(email) {
+  function choose(user) {
     setError("");
     onClearExternalError?.();
-    setSignedInEmail(email);
-    onSignedIn();
+    setSignedInEmail(user.email);
+    // The account picker already loaded the complete user shape needed by the
+    // app. Hand it off directly instead of immediately asking the remote
+    // database for the same record again.
+    onSignedIn(user);
   }
 
   return (
@@ -157,7 +160,7 @@ export default function LoginScreen({ onSignedIn, externalError = "", onClearExt
             {shownError && <div style={{ padding: 16 }}><ErrorBanner message={shownError} /></div>}
             {!users && !error && <Loading label="Loading accounts..." />}
             {visible.map((u) => (
-              <button key={u.id} onClick={() => choose(u.email)} style={{
+              <button key={u.id} onClick={() => choose(u)} style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 22px",
                 border: "none", borderBottom: `1px solid ${T.line}`, background: "#fff", cursor: "pointer", textAlign: "start",
               }}>

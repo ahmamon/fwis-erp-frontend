@@ -4,6 +4,20 @@ import { T, FieldLabel, TextField, Button, ErrorBanner, Loading, SectionCard, In
 import { useLang } from "../i18n.jsx";
 
 const canManage = (user) => user && (hasRole(user, "admin") || hasRole(user, "supervisor"));
+const canUseQuestionStudio = (user) => user && ["teacher", "hod", "supervisor", "admin"].some((role) => hasRole(user, role));
+
+const PURPOSE_OPTIONS = [
+  { value: "worksheet", label: "Worksheet" },
+  { value: "exit_ticket", label: "Exit Ticket" },
+  { value: "homework", label: "Homework Practice" },
+  { value: "class_practice", label: "In-Class Practice" },
+];
+const DIFFICULTY_OPTIONS = [
+  { value: "mixed", label: "Mixed difficulty" },
+  { value: "easy", label: "Easy" },
+  { value: "medium", label: "Medium" },
+  { value: "challenging", label: "Challenging" },
+];
 
 // Server enforces the same cap (multer limit); this just avoids uploading a
 // file that would be rejected.
@@ -49,7 +63,7 @@ export default function ResourcesEditor({ currentUser }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {items.map((item) => (
-              <ResourceRow key={item.id} resource={item} canManage={canManage(currentUser)} onChanged={load} />
+              <ResourceRow key={item.id} resource={item} currentUser={currentUser} canManage={canManage(currentUser)} canUseStudio={canUseQuestionStudio(currentUser)} onChanged={load} />
             ))}
           </div>
         )}
@@ -179,7 +193,7 @@ function ResourceForm({ initial, onDone, onCancel }) {
   );
 }
 
-function ResourceRow({ resource, canManage, onChanged }) {
+function ResourceRow({ resource, currentUser, canManage, canUseStudio, onChanged }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -190,6 +204,16 @@ function ResourceRow({ resource, canManage, onChanged }) {
   const [questions, setQuestions] = useState([]);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [request, setRequest] = useState("");
+  const [purpose, setPurpose] = useState("worksheet");
+  const [difficulty, setDifficulty] = useState("mixed");
+  const [questionCount, setQuestionCount] = useState("6");
+  const [kinds, setKinds] = useState(["mcq", "short_answer"]);
+  const [selected, setSelected] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [activityForm, setActivityForm] = useState({ title: "", instructions: "", purpose: "worksheet", isPublished: true, showResults: true });
+  const [activityBusy, setActivityBusy] = useState(false);
+  const [notice, setNotice] = useState("");
 
   async function remove() {
     if (!window.confirm(`${t("Delete")} "${resource.name}"?`)) return;
@@ -250,14 +274,36 @@ function ResourceRow({ resource, canManage, onChanged }) {
     }
   }
 
+  async function loadStudio() {
+    setAiError("");
+    try {
+      const [list, saved] = await Promise.all([
+        api.get(`/api/resources/${resource.id}/questions`),
+        api.get(`/api/activities?resourceId=${encodeURIComponent(resource.id)}`),
+      ]);
+      setQuestions(list);
+      setActivities(saved);
+      setBankOpen(true);
+    } catch (e) {
+      setAiError(e.message);
+    }
+  }
+
   async function generateQuestions() {
     setAiBusy(true);
     setAiError("");
     try {
-      await api.post(`/api/resources/${resource.id}/generate-questions`, { count: 6 });
+      await api.post(`/api/resources/${resource.id}/generate-questions`, {
+        count: Number(questionCount) || 6,
+        request,
+        purpose,
+        difficulty,
+        kinds,
+      });
       const list = await api.get(`/api/resources/${resource.id}/questions`);
       setQuestions(list);
       setBankOpen(true);
+      setNotice(t("New questions were added to the bank. Select the ones you want to use."));
     } catch (e) {
       if (e.code === "AI_NOT_CONFIGURED") {
         setAiError("__AI_NOT_CONFIGURED__");
@@ -267,6 +313,81 @@ function ResourceRow({ resource, canManage, onChanged }) {
     } finally {
       setAiBusy(false);
     }
+  }
+
+  function toggleKind(kind) {
+    setKinds((current) => current.includes(kind) ? current.filter((value) => value !== kind) : [...current, kind]);
+  }
+
+  function toggleSelected(id) {
+    setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  }
+
+  async function createActivity() {
+    if (!selected.length) { setAiError(t("Select at least one question.")); return; }
+    if (!activityForm.title.trim()) { setAiError(t("Enter an activity title.")); return; }
+    setActivityBusy(true);
+    setAiError("");
+    try {
+      const created = await api.post("/api/activities", {
+        resourceId: resource.id,
+        questionIds: selected,
+        ...activityForm,
+        subject: resource.subject,
+        grade: resource.grade,
+      });
+      setActivities((current) => [created, ...current]);
+      setSelected([]);
+      setActivityForm((current) => ({ ...current, title: "", instructions: "" }));
+      setNotice(created.isPublished ? t("Live activity created. Its link is ready for the Weekly Plan.") : t("Activity saved as a draft."));
+    } catch (e) {
+      setAiError(e.message);
+    } finally {
+      setActivityBusy(false);
+    }
+  }
+
+  async function updateActivity(activity, updates) {
+    try {
+      const updated = await api.patch(`/api/activities/${activity.id}`, updates);
+      setActivities((current) => current.map((row) => row.id === activity.id ? updated : row));
+    } catch (e) { setAiError(e.message); }
+  }
+
+  async function deleteActivity(activity) {
+    if (!window.confirm(`${t("Delete")} "${activity.title}"?`)) return;
+    try {
+      await api.del(`/api/activities/${activity.id}`);
+      setActivities((current) => current.filter((row) => row.id !== activity.id));
+    } catch (e) { setAiError(e.message); }
+  }
+
+  function liveUrl(activity) {
+    return `${window.location.origin}/activity/${activity.publicToken}`;
+  }
+
+  async function copyLiveLink(activity) {
+    const url = liveUrl(activity);
+    try {
+      await navigator.clipboard.writeText(url);
+      setNotice(t("Live activity link copied. Paste it into Weekly Planning → Digital Resources."));
+    } catch {
+      window.prompt(t("Copy this link for the Weekly Plan:"), url);
+    }
+  }
+
+  async function downloadActivity(activity, format, answers = false) {
+    try {
+      const blob = await api.download(`/api/activities/${activity.id}/export.${format}${answers ? "?answers=1" : ""}`);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${activity.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "activity"}.${format}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) { setAiError(e.message); }
   }
 
   async function saveQuestion(id, updates) {
@@ -343,30 +464,85 @@ function ResourceRow({ resource, canManage, onChanged }) {
         </div>
       )}
 
-      {/* AI question bank */}
-      {canManage && (
+      {/* Teacher Question Studio */}
+      {canUseStudio && (
         <div style={{ marginTop: 12, borderTop: `1px solid ${T.line}`, paddingTop: 12 }}>
+          {!bankOpen && (
+            <Button onClick={loadStudio} variant="outline" style={{ padding: "7px 14px" }}>{t("Open Question Studio")}</Button>
+          )}
+          {notice && <div style={{ margin: "10px 0", background: "#E9F7EF", border: "1px solid #82C89B", color: "#176B3A", borderRadius: 8, padding: "9px 12px", fontSize: 13 }}>{notice}</div>}
           {aiError === "__AI_NOT_CONFIGURED__" && (
             <div style={{ background: T.cream100, border: `1px solid ${T.gold500}`, borderRadius: 8, padding: "10px 14px", fontSize: 13.5, color: T.ink900, marginBottom: 10 }}>
               {t("AI questions aren't set up yet — add a free Gemini API key (no card required) to the backend to enable question generation.")}
             </div>
           )}
           {aiError && aiError !== "__AI_NOT_CONFIGURED__" && <ErrorBanner message={aiError} />}
-          <div style={{ display: "flex", gap: 8, marginBottom: bankOpen && questions.length ? 10 : 0 }}>
-            <Button onClick={generateQuestions} variant="outline" disabled={aiBusy} style={{ padding: "6px 14px" }}>
-              {aiBusy ? t("Generating…") : t("Generate Questions")}
-            </Button>
-            {questions.length > 0 && (
-              <Button onClick={() => (bankOpen ? setBankOpen(false) : loadBank())} variant="outline" style={{ padding: "6px 14px" }}>
-                {bankOpen ? t("Hide bank") : `${t("View bank")} (${questions.length})`}
-              </Button>
-            )}
-          </div>
-          {bankOpen && questions.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-              {questions.map((q) => (
-                <QuestionRow key={q.id} question={q} onSave={saveQuestion} onDelete={deleteQuestion} />
-              ))}
+          {bankOpen && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: T.navy900 }}>{t("Question Studio")}</div>
+                  <div style={{ fontSize: 12.5, color: T.ink600 }}>{t("Ask for questions, select the best ones, then turn them into a learning activity.")}</div>
+                </div>
+                <Button onClick={() => setBankOpen(false)} variant="outline" style={{ padding: "5px 12px" }}>{t("Close studio")}</Button>
+              </div>
+
+              <div style={{ marginTop: 12, padding: 14, borderRadius: 10, background: T.cream50, border: `1px solid ${T.line}` }}>
+                <FieldLabel>{t("Ask the question assistant")}</FieldLabel>
+                <TextField value={request} onChange={setRequest} rows={3} placeholder={t("Example: Create inference questions from the passage, include two vocabulary questions, and avoid trick questions.")} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 10 }}>
+                  <div><FieldLabel>{t("Use as")}</FieldLabel><Select value={purpose} onChange={setPurpose} options={PURPOSE_OPTIONS} /></div>
+                  <div><FieldLabel>{t("Difficulty")}</FieldLabel><Select value={difficulty} onChange={setDifficulty} options={DIFFICULTY_OPTIONS} /></div>
+                  <div><FieldLabel>{t("Number of questions")}</FieldLabel><Input type="number" min="1" max="12" value={questionCount} onChange={setQuestionCount} /></div>
+                </div>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
+                  {[["mcq", "Multiple choice"], ["short_answer", "Short answer"], ["true_false", "True / False"], ["fill_blank", "Fill in the blank"]].map(([value, label]) => (
+                    <label key={value} style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" checked={kinds.includes(value)} onChange={() => toggleKind(value)} />{t(label)}</label>
+                  ))}
+                </div>
+                <Button onClick={generateQuestions} disabled={aiBusy || !kinds.length} style={{ marginTop: 12 }}>
+                  {aiBusy ? t("Generating…") : t("Send request and generate")}
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontWeight: 700, color: T.navy900 }}>{t("Question bank")} ({questions.length})</div>
+                {questions.length > 0 && <Button variant="outline" onClick={() => setSelected(selected.length === questions.length ? [] : questions.map((q) => q.id))} style={{ padding: "5px 12px" }}>{selected.length === questions.length ? t("Clear selection") : t("Select all")}</Button>}
+              </div>
+              {questions.length === 0 ? (
+                <div style={{ marginTop: 8, color: T.ink600, fontSize: 13 }}>{t("No questions yet. Ask the assistant above to create the first set.")}</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                  {questions.map((q) => (
+                    <QuestionRow key={q.id} question={q} selected={selected.includes(q.id)} onToggle={() => toggleSelected(q.id)} canEdit={q.createdById === currentUser.id} onSave={saveQuestion} onDelete={deleteQuestion} />
+                  ))}
+                </div>
+              )}
+
+              <div style={{ marginTop: 16, padding: 14, border: `1px solid ${T.gold500}`, borderRadius: 10, background: "#FFFCF4" }}>
+                <div style={{ fontWeight: 700, color: T.navy900 }}>{t("Build an activity from selected questions")} · {selected.length} {t("selected")}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(200px, 2fr) minmax(160px, 1fr)", gap: 10, marginTop: 10 }}>
+                  <div><FieldLabel required>{t("Activity title")}</FieldLabel><Input value={activityForm.title} onChange={(value) => setActivityForm((current) => ({ ...current, title: value }))} placeholder={t("Example: Fractions exit ticket")} /></div>
+                  <div><FieldLabel>{t("Activity type")}</FieldLabel><Select value={activityForm.purpose} onChange={(value) => setActivityForm((current) => ({ ...current, purpose: value }))} options={PURPOSE_OPTIONS} /></div>
+                </div>
+                <div style={{ marginTop: 10 }}><FieldLabel>{t("Student instructions")}</FieldLabel><TextField value={activityForm.instructions} onChange={(value) => setActivityForm((current) => ({ ...current, instructions: value }))} rows={2} /></div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
+                  <label><input type="checkbox" checked={activityForm.isPublished} onChange={(e) => setActivityForm((current) => ({ ...current, isPublished: e.target.checked }))} /> {t("Create a live interactive link")}</label>
+                  <label><input type="checkbox" checked={activityForm.showResults} onChange={(e) => setActivityForm((current) => ({ ...current, showResults: e.target.checked }))} /> {t("Show score and corrections after submission")}</label>
+                </div>
+                <Button onClick={createActivity} disabled={activityBusy || !selected.length || !activityForm.title.trim()} style={{ marginTop: 12 }}>{activityBusy ? t("Creating...") : t("Create activity")}</Button>
+              </div>
+
+              {activities.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontWeight: 700, color: T.navy900, marginBottom: 8 }}>{t("Saved activities")}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {activities.map((activity) => (
+                      <ActivityRow key={activity.id} activity={activity} liveUrl={liveUrl(activity)} onCopy={() => copyLiveLink(activity)} onDownload={downloadActivity} onUpdate={updateActivity} onDelete={deleteActivity} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -375,7 +551,7 @@ function ResourceRow({ resource, canManage, onChanged }) {
   );
 }
 
-function QuestionRow({ question, onSave, onDelete }) {
+function QuestionRow({ question, selected, onToggle, canEdit, onSave, onDelete }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({
@@ -418,6 +594,7 @@ function QuestionRow({ question, onSave, onDelete }) {
   return (
     <div style={{ border: `1px solid ${T.line}`, borderRadius: 8, padding: "10px 12px", background: T.cream50 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <input type="checkbox" checked={selected} onChange={onToggle} aria-label={t("Select question")} style={{ alignSelf: "flex-start", marginTop: 4 }} />
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ background: T.navy700, color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.4 }}>
@@ -451,13 +628,36 @@ function QuestionRow({ question, onSave, onDelete }) {
               <Button onClick={save} style={{ padding: "4px 12px", fontSize: 12.5 }}>{t("Save")}</Button>
               <Button onClick={() => setEditing(false)} variant="outline" style={{ padding: "4px 12px", fontSize: 12.5 }}>{t("Cancel")}</Button>
             </>
-          ) : (
+          ) : canEdit ? (
             <>
               <Button onClick={beginEdit} variant="outline" style={{ padding: "4px 12px", fontSize: 12.5 }}>{t("Edit")}</Button>
               <Button onClick={() => onDelete(question.id)} variant="danger" style={{ padding: "4px 12px", fontSize: 12.5 }}>{t("Discard")}</Button>
             </>
-          )}
+          ) : null}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({ activity, liveUrl, onCopy, onDownload, onUpdate, onDelete }) {
+  const { t } = useLang();
+  return (
+    <div style={{ border: `1px solid ${T.line}`, borderRadius: 9, padding: 12, background: "#fff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontWeight: 650, color: T.navy900 }}>{activity.title}</div>
+          <div style={{ color: T.ink600, fontSize: 12.5, marginTop: 2 }}>{activity.purpose.replace(/_/g, " ")} · {activity.items.length} {t("questions")} · {activity._count?.submissions || 0} {t("submissions")}</div>
+        </div>
+        <label style={{ fontSize: 12.5, color: T.ink900, display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={activity.isPublished} onChange={(e) => onUpdate(activity, { isPublished: e.target.checked })} /> {t("Live")}</label>
+      </div>
+      {activity.isPublished && <input readOnly value={liveUrl} onFocus={(e) => e.target.select()} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 7, padding: "7px 9px", marginTop: 9, color: T.ink600, background: T.cream50 }} />}
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 9 }}>
+        {activity.isPublished && <><Button onClick={onCopy} style={{ padding: "5px 10px", fontSize: 12 }}>{t("Copy link for Weekly Plan")}</Button><a href={liveUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}><Button variant="outline" style={{ padding: "5px 10px", fontSize: 12 }}>{t("Open live")}</Button></a></>}
+        <Button onClick={() => onDownload(activity, "pdf")} variant="outline" style={{ padding: "5px 10px", fontSize: 12 }}>{t("PDF")}</Button>
+        <Button onClick={() => onDownload(activity, "docx")} variant="outline" style={{ padding: "5px 10px", fontSize: 12 }}>{t("Word")}</Button>
+        <Button onClick={() => onDownload(activity, "pdf", true)} variant="outline" style={{ padding: "5px 10px", fontSize: 12 }}>{t("PDF + answer key")}</Button>
+        <Button onClick={() => onDelete(activity)} variant="danger" style={{ padding: "5px 10px", fontSize: 12 }}>{t("Delete")}</Button>
       </div>
     </div>
   );

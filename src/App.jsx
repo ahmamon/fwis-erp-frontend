@@ -7,7 +7,6 @@ import Dashboard from "./Dashboard.jsx";
 import Planning from "./Planning.jsx";
 import Calendar from "./modules/Calendar.jsx";
 import { ProfileView } from "./OtherModules.jsx";
-import LessonsEditor from "./modules/LessonsEditor.jsx";
 import CurriculumEditor from "./modules/CurriculumEditor.jsx";
 import StrategiesEditor from "./modules/StrategiesEditor.jsx";
 import ResourcesEditor from "./modules/ResourcesEditor.jsx";
@@ -15,6 +14,10 @@ import PDEditor from "./modules/PDEditor.jsx";
 import EvaluationEditor from "./modules/EvaluationEditor.jsx";
 import AdminPanel from "./modules/AdminPanel.jsx";
 import ReportsCenter from "./modules/ReportsCenter.jsx";
+import { LessonPlanningModule } from "./LessonPlanningModule.jsx";
+import Timetables from "./Timetables.jsx";
+import PublicActivity from "./PublicActivity.jsx";
+import StudentPerformance from "./StudentPerformance.jsx";
 import { T, Loading, hasRole } from "./ui.jsx";
 
 // The "acting as" role for multi-role accounts (e.g. admin + teacher director).
@@ -26,6 +29,12 @@ function initialActiveRole(user) {
 }
 
 export default function App() {
+  const publicMatch = window.location.pathname.match(/^\/activity\/([^/]+)\/?$/);
+  if (publicMatch) return <PublicActivity token={decodeURIComponent(publicMatch[1])} />;
+  return <AuthenticatedApp />;
+}
+
+function AuthenticatedApp() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeRole, setActiveRoleState] = useState("");
   const [checkedSession, setCheckedSession] = useState(false);
@@ -96,7 +105,11 @@ export default function App() {
       <LoginScreen
         externalError={loginError}
         onClearExternalError={() => setLoginError("")}
-        onSignedIn={() => {
+        onSignedIn={(selectedUser) => {
+          if (selectedUser) {
+            applyUser(selectedUser);
+            return;
+          }
           api.get("/api/users/me")
             .then(applyUser)
             .catch((e) => { setLoginError(e.message || ""); signOut(); });
@@ -131,10 +144,12 @@ export default function App() {
           {module === "reports" && ["hod", "supervisor", "admin"].some((r) => hasRole(currentUser, r)) && <ReportsCenter currentUser={currentUser} />}
           {module === "profile" && <ProfileView currentUser={currentUser} onUpdated={applyUser} />}
           {module === "planning" && <Planning currentUser={currentUser} persona={activeRole} />}
-          {module === "lessons" && <LessonsEditor currentUser={currentUser} />}
+          {module === "timetables" && <Timetables currentUser={currentUser} persona={activeRole} />}
+          {module === "lessonPlans" && <LessonPlanningModule currentUser={currentUser} />}
           {module === "curriculum" && <CurriculumEditor currentUser={currentUser} />}
           {module === "strategies" && <StrategiesEditor currentUser={currentUser} />}
           {module === "resources" && <ResourcesEditor currentUser={currentUser} />}
+          {module === "studentPerformance" && (hasRole(currentUser, "teacher") || hasRole(currentUser, "admin")) && <StudentPerformance currentUser={currentUser} persona={activeRole} />}
           {module === "pd" && <PDEditor currentUser={currentUser} />}
           {module === "evaluation" && <EvaluationEditor currentUser={currentUser} />}
           {module === "admin" && hasRole(currentUser, "admin") && <AdminPanel currentUser={currentUser} onNavigate={setModule} />}

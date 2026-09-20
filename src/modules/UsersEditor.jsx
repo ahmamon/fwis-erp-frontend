@@ -108,7 +108,9 @@ export default function UsersEditor({ currentUser }) {
 
   const [editId, setEditId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
+  const [assignmentDraft, setAssignmentDraft] = useState({ grade: "", classSection: "", subject: "", branchId: "" });
   const setEdit = (k) => (v) => setEditDraft((f) => ({ ...f, [k]: v }));
+  const setAssignment = (k) => (v) => setAssignmentDraft((f) => ({ ...f, [k]: v }));
 
   async function load() {
     try {
@@ -168,6 +170,7 @@ export default function UsersEditor({ currentUser }) {
       phone: u.phone || "", bio: u.bio || "",
       assignedGrades: [...(u.assignedGrades || [])], assignedSubjects: [...(u.assignedSubjects || [])],
     });
+    setAssignmentDraft({ grade: "", classSection: "", subject: "", branchId: u.branchId || "" });
     setEditId(u.id);
   };
 
@@ -177,11 +180,24 @@ export default function UsersEditor({ currentUser }) {
     await load();
   });
 
+  const addAssignment = (u) => run(async () => {
+    await api.post(`/api/users/${u.id}/teaching-assignments`, assignmentDraft);
+    setAssignmentDraft((draft) => ({ ...draft, grade: "", classSection: "", subject: "" }));
+    await load();
+  });
+
+  const removeAssignment = (u, assignmentId) => run(async () => {
+    await api.del(`/api/users/${u.id}/teaching-assignments/${assignmentId}`);
+    await load();
+  });
+
   if (!users) return <Loading />;
 
   const branchOptions = branches.map((b) => ({ value: b.id, label: b.name }));
   const subjectOptions = subjects.map((s) => ({ value: s.id, label: s.name }));
   const gradeOptions = grades.map((g) => ({ value: g.id, label: g.label }));
+  const assignmentGradeOptions = grades.map((g) => ({ value: g.label, label: g.label }));
+  const assignmentSubjectOptions = subjects.map((s) => ({ value: s.name, label: s.name }));
 
   return (
     <div style={{ padding: "20px 28px 60px", maxWidth: 980, margin: "0 auto" }}>
@@ -244,6 +260,42 @@ export default function UsersEditor({ currentUser }) {
                           <Input value={editDraft.phone} onChange={setEdit("phone")} />
                         </div>
                       </div>
+                      <div style={{ border: `1px solid ${T.line}`, borderRadius: 10, padding: 12, background: T.cream100 }}>
+                        <FieldLabel>{t("Weekly planning assignments")}</FieldLabel>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+                          <div style={{ flex: "1 1 130px" }}>
+                            <FieldLabel>{t("Grade")}</FieldLabel>
+                            <Select value={assignmentDraft.grade} onChange={setAssignment("grade")} options={assignmentGradeOptions} placeholder="—" />
+                          </div>
+                          <div style={{ flex: "1 1 130px" }}>
+                            <FieldLabel>{t("Class / section")}</FieldLabel>
+                            <Input value={assignmentDraft.classSection} onChange={setAssignment("classSection")} placeholder={t("e.g. A or 6A")} />
+                          </div>
+                          <div style={{ flex: "1 1 170px" }}>
+                            <FieldLabel>{t("Subject")}</FieldLabel>
+                            <Select value={assignmentDraft.subject} onChange={setAssignment("subject")} options={assignmentSubjectOptions} placeholder="—" />
+                          </div>
+                          <div style={{ flex: "1 1 150px" }}>
+                            <FieldLabel>{t("Branch")}</FieldLabel>
+                            <Select value={assignmentDraft.branchId} onChange={setAssignment("branchId")} options={branchOptions} placeholder="—" />
+                          </div>
+                          <Button
+                            onClick={() => addAssignment(u)}
+                            disabled={busy || !assignmentDraft.grade || !assignmentDraft.classSection.trim() || !assignmentDraft.subject}
+                          >
+                            {t("Add assignment")}
+                          </Button>
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 10 }}>
+                          {(u.teachingAssignments || []).map((assignment) => (
+                            <span key={assignment.id} style={{ display: "inline-flex", gap: 7, alignItems: "center", border: `1px solid ${T.line}`, background: "#fff", borderRadius: 999, padding: "5px 9px", fontSize: 12 }}>
+                              {assignment.grade} · {assignment.classSection} · {assignment.subject}
+                              <button type="button" onClick={() => removeAssignment(u, assignment.id)} aria-label={t("Remove assignment")} style={{ border: 0, background: "transparent", color: T.copper500, cursor: "pointer", fontWeight: 800 }}>×</button>
+                            </span>
+                          ))}
+                          {(u.teachingAssignments || []).length === 0 && <span style={{ fontSize: 12, color: T.ink600 }}>{t("No exact assignments yet.")}</span>}
+                        </div>
+                      </div>
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <div style={{ flex: "1 1 300px" }}>
                           <ChipSelector label="Assigned grades" options={gradeOptions} value={editDraft.assignedGrades} onChange={setEdit("assignedGrades")} />
@@ -280,6 +332,7 @@ export default function UsersEditor({ currentUser }) {
                           {(u.assignedSubjects?.length
                             ? ` · ${t("subjects")}: ${u.assignedSubjects.map((sid) => subjects.find((s) => s.id === sid)?.name || sid).join(", ")}`
                             : "")}
+                          {(u.teachingAssignments?.length ? ` · ${t("weekly assignments")}: ${u.teachingAssignments.length}` : "")}
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
