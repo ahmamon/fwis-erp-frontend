@@ -1,4 +1,4 @@
-# FWIS Academic ERP — Frontend
+# FWIS Academic Progress — Frontend
 
 The real, working interface for the ERP — connected to your live backend
 at `academic.alsafwafuture.com`, not fake local data.
