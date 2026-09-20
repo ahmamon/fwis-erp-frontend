@@ -493,7 +493,11 @@ function ResourceRow({ resource, currentUser, canManage, canUseStudio, onChanged
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 10 }}>
                   <div><FieldLabel>{t("Use as")}</FieldLabel><Select value={purpose} onChange={setPurpose} options={PURPOSE_OPTIONS} /></div>
                   <div><FieldLabel>{t("Difficulty")}</FieldLabel><Select value={difficulty} onChange={setDifficulty} options={DIFFICULTY_OPTIONS} /></div>
-                  <div><FieldLabel>{t("Number of questions")}</FieldLabel><Input type="number" min="1" max="12" value={questionCount} onChange={setQuestionCount} /></div>
+                  <div>
+                    <FieldLabel>{t("Number of questions")}</FieldLabel>
+                    <Input type="number" min="1" value={questionCount} onChange={setQuestionCount} />
+                    <div style={{ marginTop: 4, fontSize: 11.5, color: T.ink600 }}>{t("Larger sets are generated in safe batches.")}</div>
+                  </div>
                 </div>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
                   {[["mcq", "Multiple choice"], ["short_answer", "Short answer"], ["true_false", "True / False"], ["fill_blank", "Fill in the blank"]].map(([value, label]) => (
